@@ -5,6 +5,7 @@
 #include <glfw3webgpu.h>
 #include "Window.hpp"
 #include "GpuContext.hpp"
+#include <filesystem>
 
 int main() {
     using namespace wgpu;
@@ -16,30 +17,22 @@ int main() {
 
     auto swapChain = gpuContext.CreateSwapChain(window.GetWidth(), window.GetHeight());
 
-    std::unique_ptr<ShaderModule> shaderModule = gpuContext.CreateShaderModule(R"(
-@vertex
-fn vs_main(
-    @builtin(vertex_index) in_vertex_index: u32
-) -> @builtin(position) vec4<f32> {
-	var p = vec2f(0.0, 0.0);
-	if (in_vertex_index == 0u) {
-		p = vec2f(-0.5, -0.5);
-	} else if (in_vertex_index == 1u) {
-		p = vec2f(0.5, -0.5);
-	} else {
-		p = vec2f(0.0, 0.5);
-	}
-	return vec4f(p, 0.0, 1.0);
-}
+    std::unique_ptr<ShaderModule> shaderModule = gpuContext.CreateShaderModuleFromFile(std::filesystem::path(RESOURCE_DIR "/shader.wgsl"));
 
-@fragment
-fn fs_main() -> @location(0) vec4f {
-    return vec4f(0.0, 0.4, 1.0, 1.0);
-}
-)");
+    std::vector<Ajiva::Vertex> vertexData;
+    std::vector<uint16_t> indexData;
 
+    bool success = gpuContext.LoadGeometry(RESOURCE_DIR "/webgpu.txt", vertexData, indexData);
+    if (!success) {
+        std::cerr << "Could not load geometry!" << std::endl;
+        return 1;
+    }
+
+    auto vertexBuffer = gpuContext.CreateFilledBuffer(vertexData.data(), vertexData.size() * sizeof(Ajiva::Vertex),
+                                                      BufferUsage::CopyDst | BufferUsage::Vertex);
+    auto indexBuffer = gpuContext.CreateFilledBuffer(indexData.data(), indexData.size() * sizeof(uint16_t),
+                                                     BufferUsage::CopyDst | BufferUsage::Index);
     auto renderPipeline = gpuContext.CreateRenderPipeline(shaderModule);
-
 
     while (!window.IsClosed()) {
         TextureView nextTexture = swapChain->getCurrentTextureView();
@@ -54,7 +47,17 @@ fn fs_main() -> @location(0) vec4f {
 
         RenderPassEncoder renderPass = gpuContext.CreateRenderPassEncoder(encoder, nextTexture);
         renderPass.setPipeline(*renderPipeline);
-        renderPass.draw(3, 1, 0, 0);
+
+        // Set both vertex and index buffers
+        renderPass.setVertexBuffer(0, *vertexBuffer, 0, vertexData.size() * sizeof(Ajiva::Vertex));
+        // The second argument must correspond to the choice of uint16_t or uint32_t
+        // we've done when creating the index buffer.
+        renderPass.setIndexBuffer(*indexBuffer, IndexFormat::Uint16, 0, indexData.size() * sizeof(uint16_t));
+
+        // Replace `draw()` with `drawIndexed()` and `vertexCount` with `indexCount`
+        // The extra argument is an offset within the index buffer.
+        renderPass.drawIndexed(indexData.size(), 1, 0, 0, 0);
+
         renderPass.end();
 
         nextTexture.release();
