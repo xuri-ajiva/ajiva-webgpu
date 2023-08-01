@@ -151,7 +151,8 @@ static_assert(sizeof(f64) == 8, "Expected f64 to be 8 bytes.");
 // Imports
 #ifdef _MSC_VER
 /** @brief Import/export qualifier */
-#define AJ_API __declspec(dllimport)
+//#define AJ_API __declspec(dllimport)
+#define AJ_API
 #else
 /** @brief Import/export qualifier */
 #define AJ_API

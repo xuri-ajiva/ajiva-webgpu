@@ -11,7 +11,6 @@ add_subdirectory(libs/glfw)
 add_subdirectory(libs/webgpu)
 add_subdirectory(libs/glfw3webgpu)
 add_subdirectory(libs/plog)
-#add_subdirectory(libs/imgui)
 
 #=================== IMGUI ===================
 
@@ -38,8 +37,6 @@ target_include_directories(IMGUI
 )
 
 target_link_libraries(IMGUI PUBLIC webgpu glfw3webgpu)
-
-
 
 #================== ENGINE ==================
 
