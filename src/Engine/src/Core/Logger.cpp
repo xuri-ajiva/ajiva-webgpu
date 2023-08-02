@@ -91,7 +91,7 @@ public:
 
             ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
 
-            ImGui::BeginTable("log", 5, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_Resizable |
+            ImGui::BeginTable("log", 6, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_Resizable |
                                         ImGuiTableFlags_Reorderable | ImGuiTableFlags_Hideable |
                                         ImGuiTableFlags_ScrollX |
                                         ImGuiTableFlags_SizingStretchProp);
@@ -100,6 +100,8 @@ public:
             ImGui::TableSetupColumn("Time", ImGuiTableColumnFlags_WidthFixed | ImGuiTableColumnFlags_DefaultSort, 91);
             ImGui::TableSetupColumn("TID", ImGuiTableColumnFlags_WidthFixed, 35);
             ImGui::TableSetupColumn("Location", ImGuiTableColumnFlags_WidthFixed | ImGuiTableColumnFlags_DefaultHide,
+                                    200);
+            ImGui::TableSetupColumn("File", ImGuiTableColumnFlags_WidthFixed | ImGuiTableColumnFlags_DefaultHide,
                                     200);
             ImGui::TableSetupColumn("Message", ImGuiTableColumnFlags_WidthStretch);
 
@@ -131,7 +133,8 @@ public:
                 ImGui::TableNextColumn();
                 ImGui::TextWrapped("%s@%zu", record.getFunc(), record.getLine());
                 ImGui::TableNextColumn();
-
+                ImGui::TextWrapped("%s:%zu", record.getFile(), record.getLine());
+                ImGui::TableNextColumn();
 #ifdef _WIN32
                 std::wstring w_string(record.getMessage());
                 std::string string(w_string.begin(), w_string.end());
@@ -176,7 +179,35 @@ void Ajiva::Core::ShowAppLog(bool *p_open) {
 inline static void Ajiva::Core::ShowAppLog(bool *p_open){}
 #endif // AJ_LOG_IMGUI
 
-static plog::ColorConsoleAppender<plog::TxtFormatter> consoleAppender;
+class AjivaTxtFormatter {
+public:
+    static util::nstring header() {
+        return util::nstring();
+    }
+
+    static util::nstring format(const Record &record) {
+        tm t;
+        util::localtime_s(&t, &record.getTime().time);
+
+        util::nostringstream ss;
+        ss << t.tm_year + 1900 << "-" << std::setfill(PLOG_NSTR('0')) << std::setw(2) << t.tm_mon + 1 << PLOG_NSTR("-")
+           << std::setfill(PLOG_NSTR('0')) << std::setw(2) << t.tm_mday << PLOG_NSTR(" ");
+        ss << std::setfill(PLOG_NSTR('0')) << std::setw(2) << t.tm_hour << PLOG_NSTR(":")
+           << std::setfill(PLOG_NSTR('0')) << std::setw(2) << t.tm_min << PLOG_NSTR(":") << std::setfill(PLOG_NSTR('0'))
+           << std::setw(2) << t.tm_sec << PLOG_NSTR(".") << std::setfill(PLOG_NSTR('0')) << std::setw(3)
+           << static_cast<int> (record.getTime().millitm) << PLOG_NSTR(" ");
+        ss << std::setfill(PLOG_NSTR(' ')) << std::setw(5) << std::left << severityToString(record.getSeverity())
+           << PLOG_NSTR(" ");
+        ss << PLOG_NSTR("[") << record.getTid() << PLOG_NSTR("] ");
+        ss << PLOG_NSTR("[") << record.getFile() << PLOG_NSTR(":") << record.getLine() << PLOG_NSTR("] ");
+        ss << PLOG_NSTR("(") << record.getFunc() << PLOG_NSTR(") ");
+        ss << record.getMessage() << PLOG_NSTR("\n");
+
+        return ss.str();
+    }
+};
+
+static plog::ColorConsoleAppender<AjivaTxtFormatter> consoleAppender;
 
 
 inline void Ajiva::Core::SetupLogger() {
