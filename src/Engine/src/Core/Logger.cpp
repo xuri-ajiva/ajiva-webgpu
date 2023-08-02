@@ -91,62 +91,66 @@ public:
 
             ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
 
-            ImGui::BeginTable("log", 6, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_Resizable |
-                                        ImGuiTableFlags_Reorderable | ImGuiTableFlags_Hideable |
-                                        ImGuiTableFlags_ScrollX |
-                                        ImGuiTableFlags_SizingStretchProp);
+            if (ImGui::BeginTable("log", 6,
+                                  ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_Resizable |
+                                  ImGuiTableFlags_Reorderable | ImGuiTableFlags_Hideable |
+                                  ImGuiTableFlags_ScrollX |
+                                  ImGuiTableFlags_SizingStretchProp)) {
 
-            ImGui::TableSetupColumn("Severity", ImGuiTableColumnFlags_WidthFixed, 56);
-            ImGui::TableSetupColumn("Time", ImGuiTableColumnFlags_WidthFixed | ImGuiTableColumnFlags_DefaultSort, 91);
-            ImGui::TableSetupColumn("TID", ImGuiTableColumnFlags_WidthFixed, 35);
-            ImGui::TableSetupColumn("Location", ImGuiTableColumnFlags_WidthFixed | ImGuiTableColumnFlags_DefaultHide,
-                                    200);
-            ImGui::TableSetupColumn("File", ImGuiTableColumnFlags_WidthFixed | ImGuiTableColumnFlags_DefaultHide,
-                                    200);
-            ImGui::TableSetupColumn("Message", ImGuiTableColumnFlags_WidthStretch);
+                ImGui::TableSetupColumn("Severity", ImGuiTableColumnFlags_WidthFixed, 56);
+                ImGui::TableSetupColumn("Time", ImGuiTableColumnFlags_WidthFixed | ImGuiTableColumnFlags_DefaultSort,
+                                        91);
+                ImGui::TableSetupColumn("TID", ImGuiTableColumnFlags_WidthFixed, 35);
+                ImGui::TableSetupColumn("Location",
+                                        ImGuiTableColumnFlags_WidthFixed | ImGuiTableColumnFlags_DefaultHide,
+                                        200);
+                ImGui::TableSetupColumn("File", ImGuiTableColumnFlags_WidthFixed | ImGuiTableColumnFlags_DefaultHide,
+                                        200);
+                ImGui::TableSetupColumn("Message", ImGuiTableColumnFlags_WidthStretch);
 
-            ImGui::TableHeadersRow();
+                ImGui::TableHeadersRow();
 
-            for (auto &record: m_messageList) {
-                auto severity = record.getSeverity();
-                if (!SeverityFilter[severity]) continue;
-                tm t{};
-                util::localtime_s(&t, &record.getTime().time);
+                for (auto &record: m_messageList) {
+                    auto severity = record.getSeverity();
+                    if (!SeverityFilter[severity]) continue;
+                    tm t{};
+                    util::localtime_s(&t, &record.getTime().time);
 
-                ImColor color = Colors[severity];
+                    ImColor color = Colors[severity];
 
-                ImGui::TableNextRow();
+                    ImGui::TableNextRow();
 
-                if (severity > 0 && severity < Severity::info) {
-                    ImGui::PushStyleColor(ImGuiCol_Text, /*black*/ImVec4(0.0f, 0.0f, 0.0f, 1.0f));
-                    ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg1, color);
-                } else {
-                    ImGui::PushStyleColor(ImGuiCol_Text, color.Value);
+                    if (severity > 0 && severity < Severity::info) {
+                        ImGui::PushStyleColor(ImGuiCol_Text, /*black*/ImVec4(0.0f, 0.0f, 0.0f, 1.0f));
+                        ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg1, color);
+                    } else {
+                        ImGui::PushStyleColor(ImGuiCol_Text, color.Value);
+                    }
+
+                    ImGui::TableNextColumn();
+                    ImGui::Text("%s", severityToString(record.getSeverity()));
+                    ImGui::TableNextColumn();
+                    ImGui::Text("%02d:%02d:%02d.%03d ", t.tm_hour, t.tm_min, t.tm_sec, record.getTime().millitm);
+                    ImGui::TableNextColumn();
+                    ImGui::Text("%d", record.getTid());
+                    ImGui::TableNextColumn();
+                    ImGui::TextWrapped("%s@%zu", record.getFunc(), record.getLine());
+                    ImGui::TableNextColumn();
+                    ImGui::TextWrapped("%s:%zu", record.getFile(), record.getLine());
+                    ImGui::TableNextColumn();
+#ifdef _WIN32
+                    std::wstring w_string(record.getMessage());
+                    std::string string(w_string.begin(), w_string.end());
+                    ImGui::TextWrapped("%s", string.c_str());
+#else
+                    ImGui::TextWrapped(record.getMessage());
+#endif
+                    ImGui::PopStyleColor();
+                    ImGui::TableNextColumn();
                 }
 
-                ImGui::TableNextColumn();
-                ImGui::Text("%s", severityToString(record.getSeverity()));
-                ImGui::TableNextColumn();
-                ImGui::Text("%02d:%02d:%02d.%03d ", t.tm_hour, t.tm_min, t.tm_sec, record.getTime().millitm);
-                ImGui::TableNextColumn();
-                ImGui::Text("%d", record.getTid());
-                ImGui::TableNextColumn();
-                ImGui::TextWrapped("%s@%zu", record.getFunc(), record.getLine());
-                ImGui::TableNextColumn();
-                ImGui::TextWrapped("%s:%zu", record.getFile(), record.getLine());
-                ImGui::TableNextColumn();
-#ifdef _WIN32
-                std::wstring w_string(record.getMessage());
-                std::string string(w_string.begin(), w_string.end());
-                ImGui::TextWrapped("%s", string.c_str());
-#else
-                ImGui::TextWrapped(record.getMessage());
-#endif
-                ImGui::PopStyleColor();
-                ImGui::TableNextColumn();
+                ImGui::EndTable();
             }
-
-            ImGui::EndTable();
 
             ImGui::PopStyleVar();
 
@@ -210,7 +214,7 @@ public:
 static plog::ColorConsoleAppender<AjivaTxtFormatter> consoleAppender;
 
 
-inline void Ajiva::Core::SetupLogger() {
+void Ajiva::Core::SetupLogger() {
     plog::init(plog::verbose, &consoleAppender)
 #ifdef AJ_LOG_IMGUI
             .addAppender(&imgui_appender)

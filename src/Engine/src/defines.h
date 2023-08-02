@@ -3,6 +3,7 @@
 //
 #pragma once
 
+#include <memory>
 #include <cstdint>
 
 // based on https://github.com/travisvroman/kohi/blob/8cf14746f61799184d21f96a4885eef20dede3f9/engine/src/defines.h
@@ -206,3 +207,23 @@ AJ_INLINE range get_aligned_range(u64 offset, u64 size, u64 granularity) {
 
 #define AJ_MIN(x, y) (x < y ? x : y)
 #define AJ_MAX(x, y) (x > y ? x : y)
+#define ALIGN_AT(value, X) (value + X - 1) & ~(X - 1)
+
+namespace Ajiva {
+    // from  https://github.com/TheCherno/Hazel/blob/5e20b232b749a8f1339e32074c254c44d7c9c263/Hazel/src/Hazel/Core/Base.h
+    template<typename T>
+    using Scope = std::unique_ptr<T>;
+
+    template<typename T, typename ... Args>
+    constexpr Scope<T> CreateScope(Args &&... args) {
+        return std::make_unique<T>(std::forward<Args>(args)...);
+    }
+
+    template<typename T>
+    using Ref = std::shared_ptr<T>;
+
+    template<typename T, typename ... Args>
+    constexpr Ref<T> CreateRef(Args &&... args) {
+        return std::make_shared<T>(std::forward<Args>(args)...);
+    }
+}

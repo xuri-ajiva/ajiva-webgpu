@@ -9,7 +9,6 @@
 #include "Core/Logger.h"
 
 namespace Ajiva::Renderer {
-
     enum class ShaderDataType {
         None = 0, Float, Float2, Float3, Float4, Mat3, Mat4, Int, Int2, Int3, Int4, Bool
     };
@@ -124,8 +123,6 @@ namespace Ajiva::Renderer {
         std::vector<BufferElement> m_Elements;
         uint32_t m_Stride = 0;
     };
-
-    using namespace wgpu;
 
     class GpuContext;
 

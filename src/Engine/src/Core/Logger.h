@@ -7,8 +7,6 @@
 #define PLOG_CAPTURE_FILE
 #include <plog/Log.h>
 
-using namespace plog;
-
 namespace Ajiva::Core {
     AJ_API void ShowAppLog(bool *p_open);
 
