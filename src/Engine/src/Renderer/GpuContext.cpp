@@ -4,7 +4,6 @@
 
 #include "GpuContext.h"
 
-#include <fstream>
 #include "magic_enum.hpp"
 #include "Core/Logger.h"
 
@@ -12,7 +11,7 @@ namespace Ajiva::Renderer {
     GpuContext::GpuContext(const std::function<wgpu::Surface(wgpu::Instance)> &createSurface) {
         instance = std::make_unique<wgpu::Instance>(createInstance(wgpu::InstanceDescriptor{}));
         if (!instance) {
-            PLOG_FATAL << "Could not initialize WebGPU!";
+            AJ_FAIL("Could not initialize WebGPU!");
             return;
         }
         PLOG_INFO << "WebGPU instance: " << instance.get();
@@ -55,9 +54,12 @@ namespace Ajiva::Renderer {
         PLOG_INFO << "Got device: " << device.get();
 
         callback = device->setUncapturedErrorCallback([](wgpu::ErrorType type, char const *message) {
-            if (type != WGPUErrorType_NoError)
-                PLOG_FATAL << magic_enum::enum_name<WGPUErrorType>(type) << ": " << message;
-            else PLOG_INFO << magic_enum::enum_name<WGPUErrorType>(type) << ": " << message;
+            if (type == WGPUErrorType_NoError)
+                PLOG_INFO << magic_enum::enum_name<WGPUErrorType>(type) << ": " << message;
+            else {
+                PLOG_FATAL << "Uncaptured Error: " << magic_enum::enum_name<WGPUErrorType>(type) << ": ";
+                AJ_FAIL(message);
+            }
         });
 
         adapter->getLimits(&supportedLimits);
@@ -112,7 +114,7 @@ namespace Ajiva::Renderer {
         renderPassColorAttachment.resolveTarget = nullptr;
         renderPassColorAttachment.loadOp = wgpu::LoadOp::Clear;
         renderPassColorAttachment.storeOp = wgpu::StoreOp::Store;
-        renderPassColorAttachment.clearValue = wgpu::Color{0.05, 0.05, 0.05, 1.0};
+        renderPassColorAttachment.clearValue = clearColor;
         renderPassDesc.colorAttachmentCount = 1;
         renderPassDesc.colorAttachments = &renderPassColorAttachment;
 

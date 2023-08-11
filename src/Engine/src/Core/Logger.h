@@ -13,3 +13,4 @@ namespace Ajiva::Core {
     AJ_API void SetupLogger();
 }
 
+#define AJ_FAIL(...) PLOG_FATAL << __VA_ARGS__; throw std::runtime_error(__VA_ARGS__)
