@@ -17,6 +17,7 @@ namespace Ajiva::Renderer {
         glm::vec3 position;
         glm::vec3 normal;
         glm::vec3 color;
+        glm::vec2 uv;
 
         VertexData(std::istringstream &s) {
             s >> position.x;
@@ -28,6 +29,8 @@ namespace Ajiva::Renderer {
             s >> color.r;
             s >> color.g;
             s >> color.b;
+            s >> uv.x;
+            s >> uv.y;
         }
 
         VertexData(glm::vec3 position, glm::vec3 normal, glm::vec3 color) : position(position), normal(normal),
@@ -90,17 +93,18 @@ namespace Ajiva::Renderer {
         [[nodiscard]] Ref<Ajiva::Renderer::Texture>
         CreateTexture(const WGPUTextureFormat &textureFormat, const WGPUExtent3D &textureSize,
                       wgpu::TextureUsage usage = wgpu::TextureUsage::RenderAttachment,
-                      wgpu::TextureAspect textureAspect = wgpu::TextureAspect::All);
+                      wgpu::TextureAspect textureAspect = wgpu::TextureAspect::All,
+                      const char *label = "Texture") const;
 
         [[nodiscard]] inline Ref<Ajiva::Renderer::Texture>
         CreateDepthTexture(const WGPUExtent3D &textureSize);
 
         [[nodiscard]] Ref<wgpu::BindGroupLayout>
-        CreateBindGroupLayout();
+        CreateBindGroupLayout(std::vector<wgpu::BindGroupLayoutEntry> entries);
 
         [[nodiscard]] Ref<wgpu::BindGroup>
-        CreateBindGroup(const Ref<wgpu::BindGroupLayout> &bindGroupLayout,
-                        const Ref<Ajiva::Renderer::Buffer> &uniformBuffer) const;
+        CreateBindGroup(const Ref<wgpu::BindGroupLayout> &bindGroupLayout, const Ref<Buffer> &uniformBuffer,
+                        std::vector<wgpu::BindGroupEntry> bindings) const;
 
         [[nodiscard]] Ref<Ajiva::Renderer::Buffer>
         CreateBuffer(uint64_t size, WGPUBufferUsageFlags usage =

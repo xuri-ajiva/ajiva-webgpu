@@ -270,9 +270,10 @@ namespace Ajiva::Renderer {
 
     Ref<Ajiva::Renderer::Texture>
     GpuContext::CreateTexture(const WGPUTextureFormat &textureFormat, const WGPUExtent3D &textureSize,
-                              wgpu::TextureUsage usage, wgpu::TextureAspect textureAspect) {
+                              wgpu::TextureUsage usage,
+                              wgpu::TextureAspect textureAspect, const char *label) const {
         wgpu::TextureDescriptor textureDesc;
-        textureDesc.dimension = wgpu::TextureDimension::_2D;
+        textureDesc.dimension = textureSize.depthOrArrayLayers > 1 ? wgpu::TextureDimension::_3D : wgpu::TextureDimension::_2D; // todo check for array?
         textureDesc.format = textureFormat;
         textureDesc.mipLevelCount = 1;
         textureDesc.sampleCount = 1;
@@ -280,6 +281,7 @@ namespace Ajiva::Renderer {
         textureDesc.usage = usage;
         textureDesc.viewFormatCount = 1;
         textureDesc.viewFormats = &textureFormat;
+        textureDesc.label = label;
         auto texture = device->createTexture(textureDesc);
         wgpu::TextureViewDescriptor textureViewDesc;
         textureViewDesc.aspect = textureAspect;
@@ -287,57 +289,38 @@ namespace Ajiva::Renderer {
         textureViewDesc.arrayLayerCount = 1;
         textureViewDesc.baseMipLevel = 0;
         textureViewDesc.mipLevelCount = 1;
-        textureViewDesc.dimension = wgpu::TextureViewDimension::_2D;
+        textureViewDesc.dimension = textureSize.depthOrArrayLayers > 1 ? wgpu::TextureViewDimension::_3D : wgpu::TextureViewDimension::_2D; // todo check for array?
         textureViewDesc.format = textureFormat;
         wgpu::TextureView textureView = texture.createView(textureViewDesc);
         PLOG_INFO << "Texture(" << textureFormat << "): " << texture;
-        return CreateRef<Ajiva::Renderer::Texture>(texture, textureView, textureFormat, textureSize);
+        return CreateRef<Ajiva::Renderer::Texture>(texture, textureView, queue, textureFormat, textureAspect, textureSize);
     }
 
     Ref<Ajiva::Renderer::Texture> GpuContext::CreateDepthTexture(const WGPUExtent3D &textureSize) {
         return CreateTexture(wgpu::TextureFormat::Depth24Plus, textureSize, wgpu::TextureUsage::RenderAttachment,
-                             wgpu::TextureAspect::DepthOnly);
+                             wgpu::TextureAspect::DepthOnly, "DepthTexture");
     }
 
-    Ref<wgpu::BindGroupLayout> GpuContext::CreateBindGroupLayout() {
-        // Create binding layout (don't forget to = Default)
-        wgpu::BindGroupLayoutEntry bindingLayout = wgpu::Default;
-        // The binding index as used in the @binding attribute in the shader
-        bindingLayout.binding = 0;
-        // The stage that needs to access this resource
-        bindingLayout.visibility = wgpu::ShaderStage::Vertex | wgpu::ShaderStage::Fragment;
-        bindingLayout.buffer.type = wgpu::BufferBindingType::Uniform;
-        bindingLayout.buffer.minBindingSize = sizeof(UniformData);
-
+    Ref<wgpu::BindGroupLayout> GpuContext::CreateBindGroupLayout(std::vector<wgpu::BindGroupLayoutEntry> entries) {
         // Create a bind group layout
         wgpu::BindGroupLayoutDescriptor bindGroupLayoutDesc;
-        bindGroupLayoutDesc.entryCount = 1;
-        bindGroupLayoutDesc.entries = &bindingLayout;
+        bindGroupLayoutDesc.entryCount = entries.size();
+        bindGroupLayoutDesc.entries = entries.data();
         wgpu::BindGroupLayout bindGroupLayout = device->createBindGroupLayout(bindGroupLayoutDesc);
         PLOG_INFO << "Bind group layout: " << bindGroupLayout;
         return CreateRef<wgpu::BindGroupLayout>(bindGroupLayout);
     }
 
-    Ref<wgpu::BindGroup> GpuContext::CreateBindGroup(const Ref<wgpu::BindGroupLayout> &bindGroupLayout,
-                                                     const Ref<Buffer> &uniformBuffer) const {
+    Ref<wgpu::BindGroup>
+    GpuContext::CreateBindGroup(const Ref<wgpu::BindGroupLayout> &bindGroupLayout, const Ref<Buffer> &uniformBuffer,
+                                std::vector<wgpu::BindGroupEntry> bindings) const {
         PLOG_INFO << "Creating bind group";
-        wgpu::BindGroupEntry binding;
-        // The index of the binding (the entries in bindGroupDesc can be in any order)
-        binding.binding = 0;
-        // The buffer it is actually bound to
-        binding.buffer = uniformBuffer->buffer;
-        // We can specify an offset within the buffer, so that a single buffer can hold
-        // multiple uniform blocks.
-        binding.offset = 0;
-        // And we specify again the size of the buffer.
-        binding.size = sizeof(UniformData);
-
         // A bind group contains one or multiple bindings
         wgpu::BindGroupDescriptor bindGroupDesc;
         bindGroupDesc.layout = *bindGroupLayout;
         // There must be as many bindings as declared in the layout!
-        bindGroupDesc.entryCount = 1; //(bindGroupLayoutDesc.entryCount)
-        bindGroupDesc.entries = &binding;
+        bindGroupDesc.entryCount = bindings.size(); //(bindGroupLayoutDesc.entryCount)
+        bindGroupDesc.entries = bindings.data();
         wgpu::BindGroup bindGroup = device->createBindGroup(bindGroupDesc);
         PLOG_INFO << "Bind group: " << bindGroup;
         return CreateRef<wgpu::BindGroup>(bindGroup);

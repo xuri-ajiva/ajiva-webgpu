@@ -116,6 +116,11 @@ namespace Ajiva::Resource {
                         attrib.colors[3 * idx.vertex_index + 1],
                         attrib.colors[3 * idx.vertex_index + 2]
                 };
+
+                pointData[offset + i].uv = {
+                        attrib.texcoords[2 * idx.texcoord_index + 0],
+                        1 - attrib.texcoords[2 * idx.texcoord_index + 1] // Flip Y coord due to different conventions
+                };
             }
         }
 

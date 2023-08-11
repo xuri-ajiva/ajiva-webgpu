@@ -71,7 +71,7 @@ int main() {
     // Vertex fetch
     // We now have 2 attributes
     std::vector<wgpu::VertexAttribute> vertexAttribs = {
-            WGPUVertexAttribute{
+            WGPUVertexAttribute{ //todo macro this
                     .format = wgpu::VertexFormat::Float32x3,
                     .offset = offsetof(VertexData, position),
                     .shaderLocation = 0,
@@ -86,6 +86,11 @@ int main() {
                     .offset = offsetof(VertexData, color),
                     .shaderLocation = 2,
             },
+            WGPUVertexAttribute{
+                    .format = wgpu::VertexFormat::Float32x2,
+                    .offset = offsetof(VertexData, uv),
+                    .shaderLocation = 3,
+            },
     };
 
 /*    auto depthTexture = context.CreateTexture(TextureFormat::Depth24Plus, {static_cast<uint32_t>(window.GetWidth()),
@@ -97,8 +102,25 @@ int main() {
             {static_cast<uint32_t>(window.GetWidth()), static_cast<uint32_t>(window.GetHeight()), 1});
     PLOG_INFO << "Depth texture format: " << depthTexture->textureFormat;
 
+    std::vector<wgpu::BindGroupLayoutEntry> bindingLayoutEntries(2, wgpu::Default);
+    bindingLayoutEntries[0] = WGPUBindGroupLayoutEntry{
+            .binding = 0,
+            .visibility = wgpu::ShaderStage::Vertex | wgpu::ShaderStage::Fragment,
+            .buffer = WGPUBufferBindingLayout{
+                    .type = wgpu::BufferBindingType::Uniform,
+                    .minBindingSize = sizeof(UniformData),
+            },
+    };
+    bindingLayoutEntries[1] = WGPUBindGroupLayoutEntry{
+            .binding = 1,
+            .visibility = wgpu::ShaderStage::Fragment,
+            .texture = WGPUTextureBindingLayout{
+                    .sampleType = wgpu::TextureSampleType::Float,
+                    .viewDimension = wgpu::TextureViewDimension::_2D,
+            },
+    };
 
-    auto bindGroupLayout = context.CreateBindGroupLayout();
+    auto bindGroupLayout = context.CreateBindGroupLayout(bindingLayoutEntries);
     auto renderPipeline = context.CreateRenderPipeline(shaderModule, std::vector{*bindGroupLayout}, vertexAttribs,
                                                        depthTexture->textureFormat);
 
@@ -110,15 +132,31 @@ int main() {
         PLOG_ERROR << "Could not load geometry!";
         return 1;
     }*/
-    bool success = Loader::LoadGeometryFromObj(RESOURCE_DIR "/mammoth.obj", vertexData, indexData);
+    bool success = Loader::LoadGeometryFromObj(RESOURCE_DIR "/cube.obj", vertexData, indexData);
     if (!success) {
         std::cerr << "Could not load geometry!" << std::endl;
         return 1;
     }
-    UniformData uniformData = {
+    UniformData uniforms = {
             .color = {1.0f, 0.5f, 0.0f, 1.0f},
             .time = 1.0f,
     };
+
+    auto textureTest = context.CreateTexture(wgpu::TextureFormat::RGBA8Unorm, {128, 128, 1},
+                                             static_cast<const WGPUTextureUsage>(wgpu::TextureUsage::TextureBinding |
+                                                                                 wgpu::TextureUsage::CopyDst),
+                                             wgpu::TextureAspect::All, "Texture Test");
+    std::vector<uint8_t> pixels(4 * textureTest->size.width * textureTest->size.height);
+    for (uint32_t i = 0; i < textureTest->size.width; ++i) {
+        for (uint32_t j = 0; j < textureTest->size.height; ++j) {
+            uint8_t *p = &pixels[4 * (j * textureTest->size.width + i)];
+            p[0] = (i / 16) % 2 == (j / 16) % 2 ? 255 : 0; // r
+            p[1] = ((i - j) / 16) % 2 == 0 ? 255 : 0; // g
+            p[2] = ((i + j) / 16) % 2 == 0 ? 255 : 0; // b
+            p[3] = 255; // a
+        }
+    }
+    textureTest->WriteTexture(pixels.data(), pixels.size());
 
     constexpr float PI = 3.14159265358979323846f;
     using glm::mat4x4;
@@ -131,13 +169,13 @@ int main() {
     vec3 eye = {0, 0, 0};
     vec3 pos = {1, 1, 2};
     mat4x4 V = glm::lookAt(pos, eye, vec3{0, 0, 1}); //z-up, (left handed ?? )
-    uniformData.viewMatrix = V;
+    uniforms.viewMatrix = V;
 
     float ratio = static_cast<float>(window.GetWidth()) / static_cast<float>(window.GetHeight());
     float fov = 45.0f * PI / 180.0f;
     float near = 0.01f;
     float far = 100.0f;
-    uniformData.projectionMatrix = glm::perspective(fov, ratio, near, far);
+    uniforms.projectionMatrix = glm::perspective(fov, ratio, near, far);
 
     auto vertexBuffer = context.CreateFilledBuffer(vertexData.data(),
                                                    vertexData.size() * sizeof(VertexData),
@@ -146,11 +184,25 @@ int main() {
     /*auto indexBuffer = context.CreateFilledBuffer(indexData.data(), indexData.size() * sizeof(uint16_t),
                                                   wgpu::BufferUsage::CopyDst | wgpu::BufferUsage::Index,
                                                   "Index Buffer");*/
-    auto uniformBuffer = context.CreateFilledBuffer(&uniformData, sizeof(UniformData),
+    auto uniformBuffer = context.CreateFilledBuffer(&uniforms, sizeof(UniformData),
                                                     wgpu::BufferUsage::CopyDst | wgpu::BufferUsage::Uniform,
                                                     "Uniform Buffer");
 
-    auto bindGroup = context.CreateBindGroup(bindGroupLayout, uniformBuffer);
+
+    std::vector<wgpu::BindGroupEntry> bindings(2);
+    bindings[0] = WGPUBindGroupEntry{
+            .binding = 0,
+            .buffer = uniformBuffer->buffer,
+            .offset = 0,
+            .size = sizeof(UniformData),
+    };
+    bindings[1] = WGPUBindGroupEntry{
+            .binding = 1,
+            .textureView = textureTest->view
+    };
+
+
+    auto bindGroup = context.CreateBindGroup(bindGroupLayout, uniformBuffer, bindings);
 
     PLOG_DEBUG << std::chrono::duration_cast<std::chrono::milliseconds>(clock.Total());
     //AJ_INFO("Startup Time: %s", clock.Total());
@@ -165,11 +217,15 @@ int main() {
         // Update view matrix
 
         std::chrono::high_resolution_clock::duration delta = clock.Total();
-        uniformData.time = std::chrono::duration_cast<std::chrono::duration<float>>(delta).count();
-        uniformData.modelMatrix = glm::rotate(mat4x4(1.0), uniformData.time, vec3(0.0, 0.0, 1.0)) *
+        uniforms.time = std::chrono::duration_cast<std::chrono::duration<float>>(delta).count();
+        /*uniformData.modelMatrix = glm::rotate(mat4x4(1.0), uniformData.time, vec3(0.0, 0.0, 1.0)) *
                                   glm::translate(mat4x4(1.0), vec3(0.5, 0.0, 0.0)) *
-                                  glm::scale(mat4x4(1.0), vec3(0.8f));
-        uniformBuffer->UpdateBufferData(&uniformData, sizeof(UniformData));
+                                  glm::scale(mat4x4(1.0), vec3(0.8f));*/
+        uniforms.modelMatrix = mat4x4(1.0);
+        uniforms.viewMatrix = glm::lookAt(vec3(-0.5f, -2.5f, 2.0f), vec3(0.0f),
+                                          vec3(0, 0, 1)); // the last argument indicates our Up direction convention
+        uniforms.projectionMatrix = glm::perspective(45 * PI / 180, 640.0f / 480.0f, 0.01f, 100.0f);
+        uniformBuffer->UpdateBufferData(&uniforms, sizeof(UniformData));
 
         //io.DisplaySize = ImVec2((float) window.GetWidth(), (float) window.GetHeight());
         ImGui_ImplWGPU_NewFrame();
@@ -193,7 +249,7 @@ int main() {
         wgpu::CommandEncoder encoder = context.CreateCommandEncoder();
 
         wgpu::RenderPassEncoder renderPass = context.CreateRenderPassEncoder(encoder, nextTexture,
-                                                                             depthTexture->textureView,
+                                                                             depthTexture->view,
                                                                              {0.4, 0.4, 0.4, 1.0});
         renderPass.setPipeline(*renderPipeline);
 
