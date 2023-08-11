@@ -11,6 +11,7 @@ add_subdirectory(libs/glfw)
 add_subdirectory(libs/webgpu)
 add_subdirectory(libs/glfw3webgpu)
 add_subdirectory(libs/plog)
+add_subdirectory(libs/glm)
 
 #=================== IMGUI ===================
 
