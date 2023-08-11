@@ -33,7 +33,7 @@ fn vs_main(in: VertexInput) -> VertexOutput {
 	out.position = u.projectionMatrix * u.viewMatrix * u.modelMatrix * vec4f(in.position, 1.0);
     out.color = in.color;
     out.normal = (u.modelMatrix * vec4f(in.normal, 0.0)).xyz;
-    out.uv = in.uv * 6.0f;
+    out.uv = in.uv;
     return out;
 }
 

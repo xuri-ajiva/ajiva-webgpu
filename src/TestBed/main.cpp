@@ -139,7 +139,7 @@ int main() {
         PLOG_ERROR << "Could not load geometry!";
         return 1;
     }*/
-    bool success = Loader::LoadGeometryFromObj(RESOURCE_DIR "/plane.obj", vertexData, indexData);
+    bool success = Loader::LoadGeometryFromObj(RESOURCE_DIR "/fourareen.obj", vertexData, indexData);
     if (!success) {
         std::cerr << "Could not load geometry!" << std::endl;
         return 1;
@@ -167,7 +167,7 @@ int main() {
     }
     textureTest->WriteTextureMips(pixels.data(), pixels.size(), mipLevelCount);*/
 
-    auto texture = Loader::LoadTexture(RESOURCE_DIR "/cobblestone.jpg", context);
+    auto texture = Loader::LoadTexture(RESOURCE_DIR "/fourareen2K_albedo.jpg", context);
     if (!texture) {
         AJ_FAIL("Could not load texture!");
         return 1;
@@ -182,9 +182,10 @@ int main() {
 
 
     vec3 eye = {0, 0, 0};
-    vec3 pos = {1, 1, 2};
+    vec3 pos = {-2.0f, -3.0f, 2.0f};
     mat4x4 V = glm::lookAt(pos, eye, vec3{0, 0, 1}); //z-up, (left handed ?? )
     uniforms.viewMatrix = V;
+    uniforms.modelMatrix = glm::mat4(1.0f);
 
     float ratio = static_cast<float>(window.GetWidth()) / static_cast<float>(window.GetHeight());
     float fov = 45.0f * PI / 180.0f;
@@ -239,15 +240,9 @@ int main() {
 
         std::chrono::high_resolution_clock::duration delta = clock.Total();
         uniforms.time = std::chrono::duration_cast<std::chrono::duration<float>>(delta).count();
-        /*uniformData.modelMatrix = glm::rotate(mat4x4(1.0), uniformData.time, vec3(0.0, 0.0, 1.0)) *
+        uniforms.modelMatrix = glm::rotate(mat4x4(1.0), uniforms.time, vec3(0.0, 0.0, 1.0)) *
                                   glm::translate(mat4x4(1.0), vec3(0.5, 0.0, 0.0)) *
-                                  glm::scale(mat4x4(1.0), vec3(0.8f));*/
-        uniforms.modelMatrix = glm::translate(mat4x4(1.0), vec3(0.5, 0.5, 0.0));
-        uniforms.viewMatrix = glm::lookAt(vec3(-0.5f, -2.5f, 2.0f), vec3(0.0f),
-                                          vec3(0, 0, 1)); // the last argument indicates our Up direction convention
-        uniforms.projectionMatrix = glm::perspective(45 * PI / 180, 640.0f / 480.0f, 0.01f, 100.0f);
-        float viewZ = glm::mix(0.0f, 0.25f, cos(2 * PI * uniforms.time / 4) * 0.5 + 0.5);
-        uniforms.viewMatrix = glm::lookAt(vec3(-0.5f, -1.5f, viewZ + 0.25f), vec3(0.0f), vec3(0, 0, 1));
+                                  glm::scale(mat4x4(1.0), vec3(0.8f));
         uniformBuffer->UpdateBufferData(&uniforms, sizeof(UniformData));
 
         //io.DisplaySize = ImVec2((float) window.GetWidth(), (float) window.GetHeight());
