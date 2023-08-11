@@ -204,7 +204,7 @@ public:
            << PLOG_NSTR(" ");
         ss << PLOG_NSTR("[") << record.getTid() << PLOG_NSTR("] ");
         ss << PLOG_NSTR("[") << record.getFile() << PLOG_NSTR(":") << record.getLine() << PLOG_NSTR("] ");
-        ss << PLOG_NSTR("(") << record.getFunc() << PLOG_NSTR(") ");
+        ss << PLOG_NSTR("(") << record.getFunc() << PLOG_NSTR("): ");
         ss << record.getMessage() << PLOG_NSTR("\n");
 
         return ss.str();

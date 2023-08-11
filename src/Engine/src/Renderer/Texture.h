@@ -22,11 +22,12 @@ namespace Ajiva {
             wgpu::TextureAspect aspect;
 
             Texture(wgpu::Texture texture, wgpu::TextureView textureView, Ref<wgpu::Queue> queue,
-                    wgpu::TextureFormat textureFormat, wgpu::TextureAspect aspect, wgpu::Extent3D textureSize, bool cleanUp = true);
+                    wgpu::TextureFormat textureFormat, wgpu::TextureAspect aspect, wgpu::Extent3D textureSize,
+                    bool cleanUp = true);
 
             ~Texture();
 
-            void WriteTexture(const void *data, size_t length);
+            void WriteTexture(const void *data, size_t length, wgpu::Extent3D writeSize = {0, 0, 0}, uint32_t mipLevel = 0);
         };
 
     } // Ajiva

@@ -102,7 +102,7 @@ int main() {
             {static_cast<uint32_t>(window.GetWidth()), static_cast<uint32_t>(window.GetHeight()), 1});
     PLOG_INFO << "Depth texture format: " << depthTexture->textureFormat;
 
-    std::vector<wgpu::BindGroupLayoutEntry> bindingLayoutEntries(2, wgpu::Default);
+    std::vector<wgpu::BindGroupLayoutEntry> bindingLayoutEntries(3, wgpu::Default);
     bindingLayoutEntries[0] = WGPUBindGroupLayoutEntry{
             .binding = 0,
             .visibility = wgpu::ShaderStage::Vertex | wgpu::ShaderStage::Fragment,
@@ -119,6 +119,13 @@ int main() {
                     .viewDimension = wgpu::TextureViewDimension::_2D,
             },
     };
+    bindingLayoutEntries[2] = WGPUBindGroupLayoutEntry{
+            .binding = 2,
+            .visibility = wgpu::ShaderStage::Fragment,
+            .sampler = WGPUSamplerBindingLayout{
+                    .type = wgpu::SamplerBindingType::Filtering,
+            },
+    };
 
     auto bindGroupLayout = context.CreateBindGroupLayout(bindingLayoutEntries);
     auto renderPipeline = context.CreateRenderPipeline(shaderModule, std::vector{*bindGroupLayout}, vertexAttribs,
@@ -132,7 +139,7 @@ int main() {
         PLOG_ERROR << "Could not load geometry!";
         return 1;
     }*/
-    bool success = Loader::LoadGeometryFromObj(RESOURCE_DIR "/cube.obj", vertexData, indexData);
+    bool success = Loader::LoadGeometryFromObj(RESOURCE_DIR "/plane.obj", vertexData, indexData);
     if (!success) {
         std::cerr << "Could not load geometry!" << std::endl;
         return 1;
@@ -142,11 +149,50 @@ int main() {
             .time = 1.0f,
     };
 
-    auto textureTest = context.CreateTexture(wgpu::TextureFormat::RGBA8Unorm, {128, 128, 1},
+    const int mipLevelCount = 8;
+    auto textureTest = context.CreateTexture(wgpu::TextureFormat::RGBA8Unorm, {256, 256, 1},
                                              static_cast<const WGPUTextureUsage>(wgpu::TextureUsage::TextureBinding |
                                                                                  wgpu::TextureUsage::CopyDst),
-                                             wgpu::TextureAspect::All, "Texture Test");
-    std::vector<uint8_t> pixels(4 * textureTest->size.width * textureTest->size.height);
+                                             wgpu::TextureAspect::All, mipLevelCount, "Texture Test");
+
+    auto mipLevelSize = textureTest->size;
+    std::vector<uint8_t> previousLevelPixels;
+    for (uint32_t level = 0; level < mipLevelCount; ++level) {
+        // Create image data for this mip level
+        std::vector<uint8_t> pixels(4 * mipLevelSize.width * mipLevelSize.height);
+        for (uint32_t i = 0; i < mipLevelSize.width; ++i) {
+            for (uint32_t j = 0; j < mipLevelSize.height; ++j) {
+                uint8_t *p = &pixels[4 * (j * mipLevelSize.width + i)];
+                if (level == 0) {
+                    // Our initial texture formula
+                    p[0] = (i / 16) % 2 == (j / 16) % 2 ? 255 : 0; // r
+                    p[1] = ((i - j) / 16) % 2 == 0 ? 255 : 0; // g
+                    p[2] = ((i + j) / 16) % 2 == 0 ? 255 : 0; // b
+                } else {
+                    // Get the corresponding 4 pixels from the previous level
+                    uint8_t* p00 = &previousLevelPixels[4 * ((2 * j + 0) * (2 * mipLevelSize.width) + (2 * i + 0))];
+                    uint8_t* p01 = &previousLevelPixels[4 * ((2 * j + 0) * (2 * mipLevelSize.width) + (2 * i + 1))];
+                    uint8_t* p10 = &previousLevelPixels[4 * ((2 * j + 1) * (2 * mipLevelSize.width) + (2 * i + 0))];
+                    uint8_t* p11 = &previousLevelPixels[4 * ((2 * j + 1) * (2 * mipLevelSize.width) + (2 * i + 1))];
+                    // Average
+                    p[0] = (p00[0] + p01[0] + p10[0] + p11[0]) / 4;
+                    p[1] = (p00[1] + p01[1] + p10[1] + p11[1]) / 4;
+                    p[2] = (p00[2] + p01[2] + p10[2] + p11[2]) / 4;
+                }
+                p[3] = 255; // a
+            }
+        }
+
+        textureTest->WriteTexture(pixels.data(), pixels.size(), mipLevelSize, level);
+        // The size of the next mip level:
+        // (see https://www.w3.org/TR/webgpu/#logical-miplevel-specific-texture-extent)
+        mipLevelSize.width /= 2;
+        mipLevelSize.height /= 2;
+        previousLevelPixels = std::move(pixels);
+    }
+
+
+/*    std::vector<uint8_t> pixels(4 * textureTest->size.width * textureTest->size.height);
     for (uint32_t i = 0; i < textureTest->size.width; ++i) {
         for (uint32_t j = 0; j < textureTest->size.height; ++j) {
             uint8_t *p = &pixels[4 * (j * textureTest->size.width + i)];
@@ -155,8 +201,8 @@ int main() {
             p[2] = ((i + j) / 16) % 2 == 0 ? 255 : 0; // b
             p[3] = 255; // a
         }
-    }
-    textureTest->WriteTexture(pixels.data(), pixels.size());
+    }*/
+    //textureTest->WriteTexture(pixels.data(), pixels.size());
 
     constexpr float PI = 3.14159265358979323846f;
     using glm::mat4x4;
@@ -188,8 +234,10 @@ int main() {
                                                     wgpu::BufferUsage::CopyDst | wgpu::BufferUsage::Uniform,
                                                     "Uniform Buffer");
 
+    auto sampler = context.CreateSampler(wgpu::AddressMode::Repeat, wgpu::FilterMode::Linear,
+                                         wgpu::CompareFunction::Undefined, 0.0f, 1.0f * mipLevelCount, "Sampler");
 
-    std::vector<wgpu::BindGroupEntry> bindings(2);
+    std::vector<wgpu::BindGroupEntry> bindings(3);
     bindings[0] = WGPUBindGroupEntry{
             .binding = 0,
             .buffer = uniformBuffer->buffer,
@@ -199,6 +247,10 @@ int main() {
     bindings[1] = WGPUBindGroupEntry{
             .binding = 1,
             .textureView = textureTest->view
+    };
+    bindings[2] = WGPUBindGroupEntry{
+            .binding = 2,
+            .sampler = *sampler
     };
 
 
@@ -221,10 +273,12 @@ int main() {
         /*uniformData.modelMatrix = glm::rotate(mat4x4(1.0), uniformData.time, vec3(0.0, 0.0, 1.0)) *
                                   glm::translate(mat4x4(1.0), vec3(0.5, 0.0, 0.0)) *
                                   glm::scale(mat4x4(1.0), vec3(0.8f));*/
-        uniforms.modelMatrix = mat4x4(1.0);
+        uniforms.modelMatrix = glm::translate(mat4x4(1.0), vec3(0.5, 0.5, 0.0));
         uniforms.viewMatrix = glm::lookAt(vec3(-0.5f, -2.5f, 2.0f), vec3(0.0f),
                                           vec3(0, 0, 1)); // the last argument indicates our Up direction convention
         uniforms.projectionMatrix = glm::perspective(45 * PI / 180, 640.0f / 480.0f, 0.01f, 100.0f);
+        float viewZ = glm::mix(0.0f, 0.25f, cos(2 * PI * uniforms.time / 4) * 0.5 + 0.5);
+        uniforms.viewMatrix = glm::lookAt(vec3(-0.5f, -1.5f, viewZ + 0.25f), vec3(0.0f), vec3(0, 0, 1));
         uniformBuffer->UpdateBufferData(&uniforms, sizeof(UniformData));
 
         //io.DisplaySize = ImVec2((float) window.GetWidth(), (float) window.GetHeight());

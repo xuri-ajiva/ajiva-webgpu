@@ -92,12 +92,17 @@ namespace Ajiva::Renderer {
 
         [[nodiscard]] Ref<Ajiva::Renderer::Texture>
         CreateTexture(const WGPUTextureFormat &textureFormat, const WGPUExtent3D &textureSize,
-                      wgpu::TextureUsage usage = wgpu::TextureUsage::RenderAttachment,
-                      wgpu::TextureAspect textureAspect = wgpu::TextureAspect::All,
-                      const char *label = "Texture") const;
+                      wgpu::TextureUsage usage, wgpu::TextureAspect textureAspect, uint32_t mipLevelCount,
+                      const char *label) const;
 
         [[nodiscard]] inline Ref<Ajiva::Renderer::Texture>
         CreateDepthTexture(const WGPUExtent3D &textureSize);
+
+        [[nodiscard]] Ref<wgpu::Sampler>
+        CreateSampler(wgpu::AddressMode addressMode, wgpu::FilterMode filterMode,
+                      wgpu::CompareFunction compareFunction, float lodMinClamp,
+                      float lodMaxClamp, const char *label = "Sampler") const;
+
 
         [[nodiscard]] Ref<wgpu::BindGroupLayout>
         CreateBindGroupLayout(std::vector<wgpu::BindGroupLayoutEntry> entries);

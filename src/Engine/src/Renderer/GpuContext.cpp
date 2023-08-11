@@ -270,12 +270,13 @@ namespace Ajiva::Renderer {
 
     Ref<Ajiva::Renderer::Texture>
     GpuContext::CreateTexture(const WGPUTextureFormat &textureFormat, const WGPUExtent3D &textureSize,
-                              wgpu::TextureUsage usage,
-                              wgpu::TextureAspect textureAspect, const char *label) const {
+                              wgpu::TextureUsage usage, wgpu::TextureAspect textureAspect, uint32_t mipLevelCount,
+                              const char *label) const {
         wgpu::TextureDescriptor textureDesc;
-        textureDesc.dimension = textureSize.depthOrArrayLayers > 1 ? wgpu::TextureDimension::_3D : wgpu::TextureDimension::_2D; // todo check for array?
+        textureDesc.dimension = textureSize.depthOrArrayLayers > 1 ? wgpu::TextureDimension::_3D
+                                                                   : wgpu::TextureDimension::_2D; // todo check for array?
         textureDesc.format = textureFormat;
-        textureDesc.mipLevelCount = 1;
+        textureDesc.mipLevelCount = mipLevelCount;
         textureDesc.sampleCount = 1;
         textureDesc.size = textureSize;
         textureDesc.usage = usage;
@@ -288,17 +289,19 @@ namespace Ajiva::Renderer {
         textureViewDesc.baseArrayLayer = 0;
         textureViewDesc.arrayLayerCount = 1;
         textureViewDesc.baseMipLevel = 0;
-        textureViewDesc.mipLevelCount = 1;
-        textureViewDesc.dimension = textureSize.depthOrArrayLayers > 1 ? wgpu::TextureViewDimension::_3D : wgpu::TextureViewDimension::_2D; // todo check for array?
+        textureViewDesc.mipLevelCount = mipLevelCount;
+        textureViewDesc.dimension = textureSize.depthOrArrayLayers > 1 ? wgpu::TextureViewDimension::_3D
+                                                                       : wgpu::TextureViewDimension::_2D; // todo check for array?
         textureViewDesc.format = textureFormat;
         wgpu::TextureView textureView = texture.createView(textureViewDesc);
         PLOG_INFO << "Texture(" << textureFormat << "): " << texture;
-        return CreateRef<Ajiva::Renderer::Texture>(texture, textureView, queue, textureFormat, textureAspect, textureSize);
+        return CreateRef<Ajiva::Renderer::Texture>(texture, textureView, queue, textureFormat, textureAspect,
+                                                   textureSize);
     }
 
     Ref<Ajiva::Renderer::Texture> GpuContext::CreateDepthTexture(const WGPUExtent3D &textureSize) {
         return CreateTexture(wgpu::TextureFormat::Depth24Plus, textureSize, wgpu::TextureUsage::RenderAttachment,
-                             wgpu::TextureAspect::DepthOnly, "DepthTexture");
+                             wgpu::TextureAspect::DepthOnly, 1, "DepthTexture");
     }
 
     Ref<wgpu::BindGroupLayout> GpuContext::CreateBindGroupLayout(std::vector<wgpu::BindGroupLayoutEntry> entries) {
@@ -344,6 +347,26 @@ namespace Ajiva::Renderer {
         auto buffer = CreateBuffer(size, usage, label);
         buffer->UpdateBufferData(data, size);
         return buffer;
+    }
+
+    Ref<wgpu::Sampler> GpuContext::CreateSampler(wgpu::AddressMode addressMode, wgpu::FilterMode filterMode,
+                                                 wgpu::CompareFunction compareFunction, float lodMinClamp,
+                                                 float lodMaxClamp, const char *label) const {
+        wgpu::SamplerDescriptor samplerDesc;
+        samplerDesc.addressModeU = addressMode;
+        samplerDesc.addressModeV = addressMode;
+        samplerDesc.addressModeW = addressMode;
+        samplerDesc.magFilter = filterMode;
+        samplerDesc.minFilter = filterMode;
+        samplerDesc.mipmapFilter = static_cast<WGPUMipmapFilterMode>((WGPUFilterMode) filterMode);
+        samplerDesc.lodMinClamp = lodMinClamp;
+        samplerDesc.lodMaxClamp = lodMaxClamp;
+        samplerDesc.compare = compareFunction;
+        samplerDesc.maxAnisotropy = 1;
+        samplerDesc.label = label;
+        auto sampler = device->createSampler(samplerDesc);
+        PLOG_INFO << "Sampler: " << sampler;
+        return CreateRef<wgpu::Sampler>(sampler);
     }
 
 }
