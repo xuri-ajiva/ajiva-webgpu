@@ -10,17 +10,39 @@
 #include "webgpu/webgpu.hpp"
 #include "Renderer/Buffer.h"
 #include "Renderer/Texture.h"
+#include "glm/glm.hpp"
 
 namespace Ajiva::Renderer {
-    struct VertexData {
-        float x, y, z;
-        float r, g, b;
+    struct VertexData { //move to resource
+        glm::vec3 position;
+        glm::vec3 normal;
+        glm::vec3 color;
+
+        VertexData(std::istringstream &s) {
+            s >> position.x;
+            s >> position.y;
+            s >> position.z;
+            s >> normal.x;
+            s >> normal.y;
+            s >> normal.z;
+            s >> color.r;
+            s >> color.g;
+            s >> color.b;
+        }
+
+        VertexData(glm::vec3 position, glm::vec3 normal, glm::vec3 color) : position(position), normal(normal),
+                                                                            color(color) {}
+
+        VertexData() = default;
     };
+
     struct UniformData {
-        float color[4];
+        glm::mat4x4 projectionMatrix;
+        glm::mat4x4 viewMatrix;
+        glm::mat4x4 modelMatrix;
+        glm::vec4 color;
         float time;
-        float aspectRatio;
-        float _pad[2];
+        float _pad[3];
     };
     static_assert(sizeof(UniformData) % 16 == 0);
 
@@ -56,13 +78,8 @@ namespace Ajiva::Renderer {
 
 
         [[nodiscard]] Ref<wgpu::ShaderModule>
-        CreateShaderModuleFromCode(const char *code) const;
+        CreateShaderModuleFromCode(const std::string &code) const;
 
-        [[nodiscard]] Ref<wgpu::ShaderModule>
-        CreateShaderModuleFromFile(std::filesystem::path const &path) const;
-
-        static bool LoadGeometry(const std::filesystem::path &path, std::vector<VertexData> &pointData,
-                                 std::vector<uint16_t> &indexData);
 
         [[nodiscard]] Ref<wgpu::RenderPipeline>
         CreateRenderPipeline(const Ref<wgpu::ShaderModule> &shaderModule,

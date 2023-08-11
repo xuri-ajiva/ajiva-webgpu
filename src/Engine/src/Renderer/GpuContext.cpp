@@ -164,11 +164,11 @@ namespace Ajiva::Renderer {
         SubmitCommandBuffer(command);
     }
 
-    Ref<wgpu::ShaderModule> GpuContext::CreateShaderModuleFromCode(const char *code) const {
+    Ref<wgpu::ShaderModule> GpuContext::CreateShaderModuleFromCode(const std::string &code) const {
         wgpu::ShaderModuleWGSLDescriptor shaderCodeDesc;
         shaderCodeDesc.chain.next = nullptr;
         shaderCodeDesc.chain.sType = wgpu::SType::ShaderModuleWGSLDescriptor;
-        shaderCodeDesc.code = code;
+        shaderCodeDesc.code = code.c_str();
 
         wgpu::ShaderModuleDescriptor shaderDesc;
         shaderDesc.hintCount = 0;
@@ -178,75 +178,6 @@ namespace Ajiva::Renderer {
         wgpu::ShaderModule shaderModule = device->createShaderModule(shaderDesc);
         PLOG_INFO << "Created shader module: " << &shaderModule;
         return std::make_unique<wgpu::ShaderModule>(shaderModule);
-    }
-
-    Ref<wgpu::ShaderModule> GpuContext::CreateShaderModuleFromFile(const std::filesystem::path &path) const {
-        std::ifstream file(path);
-        std::string code((std::istreambuf_iterator<char>(file)),
-                         std::istreambuf_iterator<char>());
-        if (code.empty()) {
-            PLOG_FATAL << "Failed to load shader from file: " << path;
-            return nullptr;
-        }
-        return CreateShaderModuleFromCode(code.c_str());
-    }
-
-    bool GpuContext::LoadGeometry(const std::filesystem::path &path, std::vector<VertexData> &pointData,
-                                  std::vector<uint16_t> &indexData) {
-        std::ifstream file(path);
-        if (!file.is_open()) {
-            return false;
-        }
-
-        pointData.clear();
-        indexData.clear();
-
-        enum class Section {
-            None,
-            Points,
-            Indices,
-        };
-        Section currentSection = Section::None;
-
-        float value;
-        uint16_t index;
-        std::string line;
-        while (!file.eof()) {
-            getline(file, line);
-
-            // overcome the `CRLF` problem
-            if (!line.empty() && line.back() == '\r') {
-                line.pop_back();
-            }
-
-            if (line == "[points]") {
-                currentSection = Section::Points;
-            } else if (line == "[indices]") {
-                currentSection = Section::Indices;
-            } else if (line[0] == '#' || line.empty()) {
-                // Do nothing, this is a comment
-            } else if (currentSection == Section::Points) {
-                std::istringstream iss(line);
-                // Get x, y, r, g, b
-                VertexData vertex{};
-                iss >> vertex.x;
-                iss >> vertex.y;
-                iss >> vertex.z;
-                iss >> vertex.r;
-                iss >> vertex.g;
-                iss >> vertex.b;
-
-                pointData.push_back(vertex);
-            } else if (currentSection == Section::Indices) {
-                std::istringstream iss(line);
-                // Get corners #0 #1 and #2
-                for (int i = 0; i < 3; ++i) {
-                    iss >> index;
-                    indexData.push_back(index);
-                }
-            }
-        }
-        return true;
     }
 
     Ref<wgpu::RenderPipeline> GpuContext::CreateRenderPipeline(const Ref<wgpu::ShaderModule> &shaderModule,
