@@ -27,7 +27,10 @@ namespace Ajiva {
 
             ~Texture();
 
-            void WriteTexture(const void *data, size_t length, wgpu::Extent3D writeSize = {0, 0, 0}, uint32_t mipLevel = 0);
+            void
+            WriteTexture(const void *data, size_t length, wgpu::Extent3D writeSize = {0, 0, 0}, uint32_t mipLevel = 0);
+
+            void WriteTextureMips(const void *data, size_t length, uint32_t mipLevelCount);
         };
 
     } // Ajiva

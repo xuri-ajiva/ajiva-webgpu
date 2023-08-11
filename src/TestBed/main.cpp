@@ -150,49 +150,12 @@ int main() {
     };
 
     const int mipLevelCount = 8;
-    auto textureTest = context.CreateTexture(wgpu::TextureFormat::RGBA8Unorm, {256, 256, 1},
+/*    auto textureTest = context.CreateTexture(wgpu::TextureFormat::RGBA8Unorm, {256, 256, 1},
                                              static_cast<const WGPUTextureUsage>(wgpu::TextureUsage::TextureBinding |
                                                                                  wgpu::TextureUsage::CopyDst),
                                              wgpu::TextureAspect::All, mipLevelCount, "Texture Test");
 
-    auto mipLevelSize = textureTest->size;
-    std::vector<uint8_t> previousLevelPixels;
-    for (uint32_t level = 0; level < mipLevelCount; ++level) {
-        // Create image data for this mip level
-        std::vector<uint8_t> pixels(4 * mipLevelSize.width * mipLevelSize.height);
-        for (uint32_t i = 0; i < mipLevelSize.width; ++i) {
-            for (uint32_t j = 0; j < mipLevelSize.height; ++j) {
-                uint8_t *p = &pixels[4 * (j * mipLevelSize.width + i)];
-                if (level == 0) {
-                    // Our initial texture formula
-                    p[0] = (i / 16) % 2 == (j / 16) % 2 ? 255 : 0; // r
-                    p[1] = ((i - j) / 16) % 2 == 0 ? 255 : 0; // g
-                    p[2] = ((i + j) / 16) % 2 == 0 ? 255 : 0; // b
-                } else {
-                    // Get the corresponding 4 pixels from the previous level
-                    uint8_t* p00 = &previousLevelPixels[4 * ((2 * j + 0) * (2 * mipLevelSize.width) + (2 * i + 0))];
-                    uint8_t* p01 = &previousLevelPixels[4 * ((2 * j + 0) * (2 * mipLevelSize.width) + (2 * i + 1))];
-                    uint8_t* p10 = &previousLevelPixels[4 * ((2 * j + 1) * (2 * mipLevelSize.width) + (2 * i + 0))];
-                    uint8_t* p11 = &previousLevelPixels[4 * ((2 * j + 1) * (2 * mipLevelSize.width) + (2 * i + 1))];
-                    // Average
-                    p[0] = (p00[0] + p01[0] + p10[0] + p11[0]) / 4;
-                    p[1] = (p00[1] + p01[1] + p10[1] + p11[1]) / 4;
-                    p[2] = (p00[2] + p01[2] + p10[2] + p11[2]) / 4;
-                }
-                p[3] = 255; // a
-            }
-        }
-
-        textureTest->WriteTexture(pixels.data(), pixels.size(), mipLevelSize, level);
-        // The size of the next mip level:
-        // (see https://www.w3.org/TR/webgpu/#logical-miplevel-specific-texture-extent)
-        mipLevelSize.width /= 2;
-        mipLevelSize.height /= 2;
-        previousLevelPixels = std::move(pixels);
-    }
-
-
-/*    std::vector<uint8_t> pixels(4 * textureTest->size.width * textureTest->size.height);
+    std::vector<uint8_t> pixels(4 * textureTest->size.width * textureTest->size.height);
     for (uint32_t i = 0; i < textureTest->size.width; ++i) {
         for (uint32_t j = 0; j < textureTest->size.height; ++j) {
             uint8_t *p = &pixels[4 * (j * textureTest->size.width + i)];
@@ -201,8 +164,14 @@ int main() {
             p[2] = ((i + j) / 16) % 2 == 0 ? 255 : 0; // b
             p[3] = 255; // a
         }
-    }*/
-    //textureTest->WriteTexture(pixels.data(), pixels.size());
+    }
+    textureTest->WriteTextureMips(pixels.data(), pixels.size(), mipLevelCount);*/
+
+    auto texture = Loader::LoadTexture(RESOURCE_DIR "/cobblestone.jpg", context);
+    if (!texture) {
+        AJ_FAIL("Could not load texture!");
+        return 1;
+    }
 
     constexpr float PI = 3.14159265358979323846f;
     using glm::mat4x4;
@@ -246,7 +215,7 @@ int main() {
     };
     bindings[1] = WGPUBindGroupEntry{
             .binding = 1,
-            .textureView = textureTest->view
+            .textureView = texture->view
     };
     bindings[2] = WGPUBindGroupEntry{
             .binding = 2,

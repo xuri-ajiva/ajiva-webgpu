@@ -207,7 +207,7 @@ AJ_INLINE range get_aligned_range(u64 offset, u64 size, u64 granularity) {
 
 #define AJ_MIN(x, y) (x < y ? x : y)
 #define AJ_MAX(x, y) (x > y ? x : y)
-#define ALIGN_AT(value, X) (value + X - 1) & ~(X - 1)
+#define ALIGN_AT(value, X) ((value + X - 1) & ~(X - 1))
 
 namespace Ajiva {
     // from  https://github.com/TheCherno/Hazel/blob/5e20b232b749a8f1339e32074c254c44d7c9c263/Hazel/src/Hazel/Core/Base.h

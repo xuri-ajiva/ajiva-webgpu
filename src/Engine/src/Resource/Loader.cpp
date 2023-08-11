@@ -11,6 +11,10 @@
 
 #include "tiny_obj_loader.h"
 
+#define STB_IMAGE_IMPLEMENTATION
+
+#include "stb_image.h"
+
 namespace Ajiva::Resource {
     bool Loader::LoadGeometryFromSimpleTxt(const std::filesystem::path &path,
                                            std::vector<Renderer::VertexData> &pointData,
@@ -136,6 +140,52 @@ namespace Ajiva::Resource {
             AJ_FAIL("Failed to load shader!");
         }
         return content;
+    }
+
+    inline constexpr uint32_t bit_width(uint32_t m) noexcept {
+        if (m == 0) return 0;
+        else {
+            uint32_t w = 0;
+            while (m >>= 1) ++w;
+            return w;
+        }
+    }
+
+    Ref<Renderer::Texture> Loader::LoadTexture(const std::filesystem::path &path, const Renderer::GpuContext &context,
+                                               uint32_t mipLevelCount) {
+        int width, height, channels, requested_channels = STBI_rgb_alpha;
+        stbi_uc *pixels = stbi_load(path.string().c_str(), &width, &height, &channels, requested_channels);
+
+        if (!pixels) {
+            PLOG_ERROR << "Failed to load texture: " << path;
+            PLOG_WARNING << "STBI Error: " << stbi_failure_reason();
+            return nullptr;
+        }
+
+        uint32_t maxMipLevelCount = bit_width(std::max(width, height));
+        if (mipLevelCount > maxMipLevelCount) {
+            PLOG_WARNING << "MipLevelCount is to high for texture: " << path << " setting to max: " << maxMipLevelCount;
+            mipLevelCount = maxMipLevelCount;
+        }
+        if (!mipLevelCount) {
+            mipLevelCount = maxMipLevelCount;
+        }
+
+        using namespace wgpu;
+        auto texture = context.CreateTexture(TextureFormat::RGBA8Unorm,
+                                             {static_cast<uint32_t>(width), static_cast<uint32_t>(height), 1},
+                                             static_cast<const WGPUTextureUsage>(TextureUsage::TextureBinding |
+                                                                                 TextureUsage::CopyDst),
+                                             TextureAspect::All,
+                                             mipLevelCount, reinterpret_cast<const char *>(path.filename().c_str()));
+
+        if (channels != requested_channels) {
+            PLOG_DEBUG << "Texture: " << path << " was converted to 4 channels!";
+        }
+
+        texture->WriteTextureMips(pixels, width * height * requested_channels, mipLevelCount);
+        stbi_image_free(pixels);
+        return texture;
     }
 } // Ajiva
 // Resource
