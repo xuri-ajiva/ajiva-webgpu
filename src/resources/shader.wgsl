@@ -23,6 +23,7 @@ struct VertexOutput {
 
 @group(0) @binding(0) var<uniform> u: UniformData;
 @group(0) @binding(1) var gradientTexture: texture_2d<f32>;
+@group(0) @binding(2) var textureSampler: sampler;
 
 const pi = 3.14159265359;
 
@@ -32,7 +33,7 @@ fn vs_main(in: VertexInput) -> VertexOutput {
 	out.position = u.projectionMatrix * u.viewMatrix * u.modelMatrix * vec4f(in.position, 1.0);
     out.color = in.color;
     out.normal = (u.modelMatrix * vec4f(in.normal, 0.0)).xyz;
-    out.uv = in.uv;
+    out.uv = in.uv * 6.0f;
     return out;
 }
 
@@ -48,8 +49,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4f {
 	let shading2 = max(0.0, dot(lightDirection2, normal));
 	let shading = shading1 * lightColor1 + shading2 * lightColor2;
 	//let color = in.color * shading;
-    let texelCoords = vec2i(in.uv * vec2f(textureDimensions(gradientTexture)));
-    let color = textureLoad(gradientTexture, texelCoords, 0).rgb;
+    let color = textureSample(gradientTexture, textureSampler, in.uv).rgb;
 
     //let color = in.normal * 0.5 + 0.5;
 	// Gamma-correction
