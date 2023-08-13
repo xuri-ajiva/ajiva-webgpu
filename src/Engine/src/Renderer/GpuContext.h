@@ -59,10 +59,11 @@ namespace Ajiva::Renderer {
         Ref<wgpu::Queue> queue;
         wgpu::TextureFormat swapChainFormat = wgpu::TextureFormat::Undefined;
 
-        explicit GpuContext(const std::function<wgpu::Surface(wgpu::Instance)> &createSurface);
-
+        GpuContext();
 
         ~GpuContext();
+
+        bool Init(const std::function<wgpu::Surface(wgpu::Instance)> &createSurface);
 
         [[nodiscard]] Ref<wgpu::SwapChain>
         CreateSwapChain(int width, int height) const;
@@ -95,7 +96,7 @@ namespace Ajiva::Renderer {
                       wgpu::TextureUsage usage, wgpu::TextureAspect textureAspect, uint32_t mipLevelCount,
                       const char *label) const;
 
-        [[nodiscard]] inline Ref<Ajiva::Renderer::Texture>
+        [[nodiscard]] Ref<Ajiva::Renderer::Texture>
         CreateDepthTexture(const WGPUExtent3D &textureSize);
 
         [[nodiscard]] Ref<wgpu::Sampler>

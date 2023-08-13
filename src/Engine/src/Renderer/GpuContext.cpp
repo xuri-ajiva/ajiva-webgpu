@@ -8,11 +8,11 @@
 #include "Core/Logger.h"
 
 namespace Ajiva::Renderer {
-    GpuContext::GpuContext(const std::function<wgpu::Surface(wgpu::Instance)> &createSurface) {
+    bool GpuContext::Init(const std::function<wgpu::Surface(wgpu::Instance)> &createSurface) {
         instance = std::make_unique<wgpu::Instance>(createInstance(wgpu::InstanceDescriptor{}));
         if (!instance) {
             AJ_FAIL("Could not initialize WebGPU!");
-            return;
+            return false;
         }
         PLOG_INFO << "WebGPU instance: " << instance.get();
         surface = std::make_unique<wgpu::Surface>(createSurface(*instance));
@@ -77,6 +77,8 @@ namespace Ajiva::Renderer {
         if (swapChainFormat == wgpu::TextureFormat::Undefined)
             swapChainFormat = wgpu::TextureFormat::BGRA8Unorm;
         PLOG_INFO << "SwapChainFormat: " << magic_enum::enum_name<WGPUTextureFormat>(swapChainFormat).data();
+
+        return true;
     }
 
     GpuContext::~GpuContext() {
@@ -368,5 +370,10 @@ namespace Ajiva::Renderer {
         PLOG_INFO << "Sampler: " << sampler;
         return CreateRef<wgpu::Sampler>(sampler);
     }
+
+    GpuContext::GpuContext() {
+
+    }
+
 
 }

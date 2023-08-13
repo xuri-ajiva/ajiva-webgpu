@@ -4,6 +4,7 @@
 
 #include "Texture.h"
 #include "Core/Logger.h"
+#include "Resource/ResourceManager.h"
 #include <utility>
 #include <vector>
 
@@ -12,13 +13,16 @@ namespace Ajiva::Renderer {
                      wgpu::TextureFormat textureFormat, wgpu::TextureAspect aspect, wgpu::Extent3D textureSize,
                      bool cleanUp)
             : textureFormat(textureFormat), size(textureSize), texture(texture),
-              view(textureView), cleanUp(cleanUp), queue(std::move(queue)), aspect(aspect) {}
+              view(textureView), cleanUp(cleanUp), queue(std::move(queue)), aspect(aspect) {
+        AJ_RegisterCreated(this, typeid(Texture));
+    }
 
     Texture::~Texture() {
         if (cleanUp) {
             view.release();
             texture.destroy();
             texture.release();
+            AJ_RegisterDestroyed(this, typeid(Texture));
         }
     }
 

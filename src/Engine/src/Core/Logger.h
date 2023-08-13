@@ -4,7 +4,9 @@
 #pragma once
 
 #include "defines.h"
+
 #define PLOG_CAPTURE_FILE
+
 #include <plog/Log.h>
 
 namespace Ajiva::Core {

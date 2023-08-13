@@ -11,16 +11,22 @@ namespace Ajiva::Resource {
     class Loader {
     public:
 
-        static std::string LoadFile(const std::filesystem::path &path, bool throwOnFail = true);
+        Loader(std::filesystem::path resourceDirectory) : resourceDirectory(std::move(resourceDirectory)) {}
 
-        static bool
-        LoadGeometryFromSimpleTxt(const std::filesystem::path &path, std::vector<Renderer::VertexData> &pointData,
-                                  std::vector<uint16_t> &indexData);
+        std::string LoadFile(const std::filesystem::path &path, bool throwOnFail = true);
 
-        static bool LoadGeometryFromObj(const std::filesystem::path &path, std::vector<Renderer::VertexData> &pointData,
-                                        std::vector<uint16_t> &indexData);
 
-        static Ref<Renderer::Texture>
-        LoadTexture(const std::filesystem::path &path, const Renderer::GpuContext &context, uint32_t mipLevelCount = 0);
+        bool LoadGeometryFromSimpleTxt(const std::filesystem::path &resourcePath, std::vector<Renderer::VertexData> &pointData,
+                                       std::vector<uint16_t> &indexData);
+
+        bool LoadGeometryFromObj(const std::filesystem::path &resourcePath, std::vector<Renderer::VertexData> &pointData,
+                                 std::vector<uint16_t> &indexData);
+
+
+        Ref<Renderer::Texture>
+        LoadTexture(const std::filesystem::path &resourcePath, const Renderer::GpuContext &context, uint32_t mipLevelCount = 0);
+
+    private:
+        std::filesystem::path resourceDirectory;
     };
 } // Ajiva

@@ -16,10 +16,10 @@
 #include "stb_image.h"
 
 namespace Ajiva::Resource {
-    bool Loader::LoadGeometryFromSimpleTxt(const std::filesystem::path &path,
+    bool Loader::LoadGeometryFromSimpleTxt(const std::filesystem::path &resourcePath,
                                            std::vector<Renderer::VertexData> &pointData,
                                            std::vector<uint16_t> &indexData) {
-        std::ifstream file(path);
+        std::ifstream file(resourceDirectory / resourcePath);
         if (!file.is_open()) {
             return false;
         }
@@ -68,7 +68,7 @@ namespace Ajiva::Resource {
         return true;
     }
 
-    bool Loader::LoadGeometryFromObj(const std::filesystem::path &path, std::vector<Renderer::VertexData> &pointData,
+    bool Loader::LoadGeometryFromObj(const std::filesystem::path &resourcePath, std::vector<Renderer::VertexData> &pointData,
                                      std::vector<uint16_t> &indexData) {
         tinyobj::attrib_t attrib;
         std::vector<tinyobj::shape_t> shapes;
@@ -78,7 +78,7 @@ namespace Ajiva::Resource {
         std::string err;
 
         // Call the core loading procedure of TinyOBJLoader
-        bool ret = tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, path.string().c_str());
+        bool ret = tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, (resourceDirectory / resourcePath).string().c_str());
 
         // Check errors
         if (!warn.empty()) {
@@ -132,11 +132,12 @@ namespace Ajiva::Resource {
     }
 
     std::string Loader::LoadFile(const std::filesystem::path &path, bool throwOnFail) {
-        std::ifstream file(path);
+        auto abs = resourceDirectory / path;
+        std::ifstream file(abs);
         std::string content((std::istreambuf_iterator<char>(file)),
                             std::istreambuf_iterator<char>());
         if (content.empty() && throwOnFail) {
-            PLOG_FATAL << "Failed to load shader from file: " << path;
+            PLOG_FATAL << "Failed to load shader from file: " << resourceDirectory / path;
             AJ_FAIL("Failed to load shader!");
         }
         return content;
@@ -151,20 +152,20 @@ namespace Ajiva::Resource {
         }
     }
 
-    Ref<Renderer::Texture> Loader::LoadTexture(const std::filesystem::path &path, const Renderer::GpuContext &context,
+    Ref<Renderer::Texture> Loader::LoadTexture(const std::filesystem::path &resourcePath, const Renderer::GpuContext &context,
                                                uint32_t mipLevelCount) {
         int width, height, channels, requested_channels = STBI_rgb_alpha;
-        stbi_uc *pixels = stbi_load(path.string().c_str(), &width, &height, &channels, requested_channels);
+        stbi_uc *pixels = stbi_load((resourceDirectory / resourcePath).string().c_str(), &width, &height, &channels, requested_channels);
 
         if (!pixels) {
-            PLOG_ERROR << "Failed to load texture: " << path;
+            PLOG_ERROR << "Failed to load texture: " << resourcePath;
             PLOG_WARNING << "STBI Error: " << stbi_failure_reason();
             return nullptr;
         }
 
         uint32_t maxMipLevelCount = bit_width(std::max(width, height));
         if (mipLevelCount > maxMipLevelCount) {
-            PLOG_WARNING << "MipLevelCount is to high for texture: " << path << " setting to max: " << maxMipLevelCount;
+            PLOG_WARNING << "MipLevelCount is to high for texture: " << resourcePath << " setting to max: " << maxMipLevelCount;
             mipLevelCount = maxMipLevelCount;
         }
         if (!mipLevelCount) {
@@ -177,10 +178,10 @@ namespace Ajiva::Resource {
                                              static_cast<const WGPUTextureUsage>(TextureUsage::TextureBinding |
                                                                                  TextureUsage::CopyDst),
                                              TextureAspect::All,
-                                             mipLevelCount, reinterpret_cast<const char *>(path.filename().c_str()));
+                                             mipLevelCount, reinterpret_cast<const char *>(resourcePath.filename().c_str()));
 
         if (channels != requested_channels) {
-            PLOG_DEBUG << "Texture: " << path << " was converted to 4 channels!";
+            PLOG_DEBUG << "Texture: " << resourcePath << " was converted to 4 channels!";
         }
 
         texture->WriteTextureMips(pixels, width * height * requested_channels, mipLevelCount);

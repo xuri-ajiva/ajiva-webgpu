@@ -31,7 +31,7 @@ namespace Ajiva {
 
     bool CreateWindow(GLFWwindow **window, int m_width, int m_height) {
         glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-        glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
+        glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
         *window = glfwCreateWindow(m_width, m_height, "Ajiva Engine", NULL, NULL);
         if (!*window) {
             PLOG_ERROR << "Could not create GLFW window!";

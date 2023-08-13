@@ -21,6 +21,11 @@ add_library(Engine STATIC
         src/Resource/Loader.cpp
         src/Resource/Loader.h
         src/Resource/tiny_obj_loader.h
+        src/Application.cpp
+        src/Application.h
+        src/Renderer/Renderer.cpp
+        src/Renderer/Renderer.h
+        src/Resource/ResourceManager.h
 )
 
 target_compile_definitions(Engine PRIVATE AJ_EXPORT)
