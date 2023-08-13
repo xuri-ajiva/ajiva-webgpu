@@ -8,6 +8,7 @@
 #include "Renderer/GpuContext.h"
 #include "Resource/Loader.h"
 #include "Core/Clock.h"
+#include "Core/EventSystem.h"
 
 namespace Ajiva {
 
@@ -39,6 +40,8 @@ namespace Ajiva {
         Ajiva::Platform::Window window;
         Ajiva::Renderer::GpuContext context;
         Ajiva::Resource::Loader loader;
+        Ref<Core::EventSystem> eventSystem = nullptr;
+
 
         Ref<wgpu::SwapChain> swapChain = nullptr;
         Ref<Ajiva::Renderer::Texture> depthTexture = nullptr;

@@ -17,26 +17,29 @@
 #include "defines.h"
 #include "glfw3webgpu.h"
 #include "plog/Log.h"
+#include "Core/EventSystem.h"
 
 
 namespace Ajiva::Platform {
 
     struct WindowConfig {
-        i16 X = 200;
-        i16 Y = 100;
-        i16 Width = 800;
-        i16 Height = 600;
+        i32 X = 200;
+        i32 Y = 100;
+        u32 Width = 800;
+        u32 Height = 600;
         bool DedicatedThread;
         std::string Name;
-        std::function<void(u16, u16)> ResizeCallback;
     };
 
     class Window {
     public:
         static bool Init();
+
         static void Shutdown();
 
-        explicit Window(const WindowConfig &config);
+        Window() = default;
+
+        explicit Window(const WindowConfig &config, Ref<Core::EventSystem> eventSystem);
 
         ~Window();
 
@@ -71,8 +74,9 @@ namespace Ajiva::Platform {
     private:
         WindowConfig config;
         bool running = false;
-        GLFWwindow *window{};
+        GLFWwindow *window = nullptr;
         bool m_cloesed = false;
+        Ref<Core::EventSystem> eventSystem;
 
         bool CreateWindow();
 

@@ -10,8 +10,8 @@
 namespace Ajiva::Resource {
     class Loader {
     public:
-
-        Loader(std::filesystem::path resourceDirectory) : resourceDirectory(std::move(resourceDirectory)) {}
+        Loader() = default;
+        explicit Loader(std::filesystem::path resourceDirectory) : resourceDirectory(std::move(resourceDirectory)) {}
 
         std::string LoadFile(const std::filesystem::path &path, bool throwOnFail = true);
 

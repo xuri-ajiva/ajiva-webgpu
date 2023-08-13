@@ -9,18 +9,31 @@
 namespace Ajiva {
 
     Application::~Application() {
+        //layer stack destructor
 
+        window.RequestClose();
     }
 
-    Application::Application(ApplicationConfig config) : config(config), loader(config.ResourceDirectory),
-                                                         window(config.WindowConfig) {
-        config.WindowConfig.ResizeCallback = [this](u16 width, u16 height) { OnResize(width, height); };
-        window = Platform::Window(config.WindowConfig);
-    }
+    Application::Application(ApplicationConfig config) : config(std::move(config)) {}
 
     bool Application::Init() {
         Core::SetupLogger();
         PLOG_INFO << "Hello, World!";
+
+        eventSystem = CreateRef<Core::EventSystem>();
+        AJ_EVENT_REGISTER(*eventSystem, Core::FramebufferResize, Application,
+                          that->OnResize(event.framebufferSize.width, event.framebufferSize.height);
+        );
+/* TODO Input manager
+ * AJ_EVENT_REGISTER(*eventSystem, Core::KeyDown, Application,
+                          that->OnKey(event.key.key, event.key.scancode, event.key.action, event.key.mods);
+        );
+        AJ_EVENT_REGISTER(*eventSystem, Core::MouseButtonDown, Application,
+                          that->OnMouseButton(event.mouse.click.button, GLFW_PRESS, event.mouse.click.mods);
+        );*/
+
+        loader = Resource::Loader(config.ResourceDirectory);
+        window = Platform::Window(config.WindowConfig, eventSystem);
         clock.Start();
         window.Create();
         if (!context.Init(window.CreateSurfaceFunk())) return false;
@@ -321,7 +334,9 @@ namespace Ajiva {
         BuildDepthTexture();
 
         //update "camera"
-        uniforms.projectionMatrix = glm::perspective(glm::radians(45.0f), static_cast<float>(window.GetWidth()) / static_cast<float>(window.GetHeight()), 0.1f, 100.0f);
+        uniforms.projectionMatrix = glm::perspective(glm::radians(45.0f), static_cast<float>(window.GetWidth()) /
+                                                                          static_cast<float>(window.GetHeight()), 0.1f,
+                                                     100.0f);
         uniformBuffer->UpdateBufferData(&uniforms, sizeof(Ajiva::Renderer::UniformData));
     }
 

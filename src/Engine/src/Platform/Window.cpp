@@ -7,12 +7,14 @@
 
 
 namespace Ajiva::Platform {
-    Window::Window(const WindowConfig &config) : config(config) {
+    Window::Window(const WindowConfig &config, Ref<Core::EventSystem> eventSystem) : config(config),
+                                                                                     eventSystem(eventSystem) {
     }
 
     Window::~Window() {
-        if (window)
+        if (window) {
             glfwDestroyWindow(window);
+        }
     }
 
     std::function<wgpu::Surface(wgpu::Instance)> Window::CreateSurfaceFunk() {
@@ -23,17 +25,69 @@ namespace Ajiva::Platform {
 
     bool Window::CreateWindow() {
         glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-        glfwWindowHint(GLFW_RESIZABLE, config.ResizeCallback ? GLFW_TRUE : GLFW_FALSE);
-        window = glfwCreateWindow(config.Width, config.Height, config.Name.c_str(), nullptr, nullptr);
+        glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
+        window = glfwCreateWindow(static_cast<i32>(config.Width), static_cast<i32>(config.Height), config.Name.c_str(),
+                                  nullptr, nullptr);
         glfwSetWindowPos(window, config.X, config.Y);
         glfwSetWindowUserPointer(window, this);
+
+#define GLFW_USER_PTR_CHECK() \
+            auto *windowClass = reinterpret_cast<Window *>(glfwGetWindowUserPointer(pWindow)); \
+            if (!windowClass) \
+                return;   \
+            auto ev = windowClass->eventSystem;
+
         glfwSetFramebufferSizeCallback(window, [](GLFWwindow *pWindow, int width, int height) {
-            auto *windowClass = reinterpret_cast<Window *>(glfwGetWindowUserPointer(pWindow));
-            windowClass->config.Width = static_cast<u16>(width);
-            windowClass->config.Height = static_cast<u16>(height);
-            if (windowClass->config.ResizeCallback)
-                windowClass->config.ResizeCallback(width, height);
+            GLFW_USER_PTR_CHECK()
+            windowClass->config.Width = static_cast<u32>(width);
+            windowClass->config.Height = static_cast<u32>(height);
+            if (ev->FireEvent(Core::EventCode::FramebufferResize, windowClass, {
+                    .framebufferSize = {.width = windowClass->config.Width, .height = windowClass->config.Height}}))
+                return;
         });
+        glfwSetKeyCallback(window, [](GLFWwindow *pWindow, int key, int scancode, int action, int mods) {
+            GLFW_USER_PTR_CHECK()
+            auto eventCore = Core::EventCode::None;
+            if (action == GLFW_PRESS)
+                eventCore = Core::EventCode::KeyDown;
+            else if (action == GLFW_RELEASE)
+                eventCore = Core::EventCode::KeyUp;
+            else return;
+            if (ev->FireEvent(eventCore, windowClass,
+                              {.key = {.key = key, .scancode = scancode, .action = action, .mods = mods}}))
+                return;
+        });
+        glfwSetMouseButtonCallback(window, [](GLFWwindow *pWindow, int button, int action, int mods) {
+            GLFW_USER_PTR_CHECK()
+            auto eventCore = Core::EventCode::None;
+            if (action == GLFW_PRESS)
+                eventCore = Core::EventCode::MouseButtonDown;
+            else if (action == GLFW_RELEASE)
+                eventCore = Core::EventCode::MouseButtonUp;
+            else return;
+            f64 x, y;
+            glfwGetCursorPos(pWindow, &x, &y);
+            if (ev->FireEvent(eventCore, windowClass,
+                              {.mouse = {.click = {.x = static_cast<u32>(x), .y = static_cast<u32>(y), .button = button, .mods = mods}}}))
+                return;
+        });
+        glfwSetCursorPosCallback(window, [](GLFWwindow *pWindow, f64 x, f64 y) {
+            GLFW_USER_PTR_CHECK()
+            if (ev->FireEvent(Core::EventCode::MouseMove, windowClass,
+                              {.mouse = {.move = {.x = static_cast<u32>(x), .y = static_cast<u32>(y)}}}))
+                return;
+        });
+        glfwSetScrollCallback(window, [](GLFWwindow *pWindow, f64 xOffset, f64 yOffset) {
+            GLFW_USER_PTR_CHECK()
+            if (ev->FireEvent(Core::EventCode::MouseScroll, windowClass, {
+                    .mouse = {.wheel={
+                            .xOffset = xOffset,
+                            .yOffset = yOffset
+                    }}}))
+                return;
+        });
+#undef GLFW_USER_PTR_CHECK
+
         if (!window) {
             PLOG_ERROR << "Could not create GLFW window!";
             glfwTerminate();
@@ -89,7 +143,7 @@ namespace Ajiva::Platform {
         return glfwWindowShouldClose(window);
     }
 
-     bool Window::Init() {
+    bool Window::Init() {
         glfwSetErrorCallback(glfw_error_callback);
         if (!glfwInit()) {
             PLOG_ERROR << "Could not initialize GLFW!";
