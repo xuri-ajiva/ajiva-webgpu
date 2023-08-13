@@ -12,15 +12,16 @@ namespace Ajiva {
 
     }
 
-    Application::Application(ApplicationConfig config) : config(config), loader(config.resourceDirectory),
-                                                         window(config.startWidth, config.startHeight,
-                                                                config.multiThread) {
+    Application::Application(ApplicationConfig config) : config(config), loader(config.ResourceDirectory),
+                                                         window(config.WindowConfig) {
+        config.WindowConfig.ResizeCallback = [this](u16 width, u16 height) { OnResize(width, height); };
+        window = Platform::Window(config.WindowConfig);
     }
 
     bool Application::Init() {
         Core::SetupLogger();
         PLOG_INFO << "Hello, World!";
-        clock.Start();;
+        clock.Start();
         window.Create();
         if (!context.Init(window.CreateSurfaceFunk())) return false;
         window.Run();
@@ -58,7 +59,15 @@ namespace Ajiva {
     }
 
     bool Application::SetupPipeline() {
-        swapChain = context.CreateSwapChain(window.GetWidth(), window.GetHeight());
+        uniforms = {
+                .color = {1.0f, 0.5f, 0.0f, 1.0f},
+                .time = 1.0f,
+        };
+
+
+        BuildSwapChain();
+        // Create the depth texture
+        BuildDepthTexture();
 
         //todo move to member??? or not
         Ref<wgpu::ShaderModule> shaderModule = context.CreateShaderModuleFromCode(loader.LoadFile("shader.wgsl"));
@@ -92,10 +101,7 @@ namespace Ajiva {
                                                                            static_cast<uint32_t>(window.GetHeight()),
                                                                            1});*/
 
-        // Create the depth texture
-        depthTexture = context.CreateDepthTexture(
-                {static_cast<uint32_t>(window.GetWidth()), static_cast<uint32_t>(window.GetHeight()), 1});
-        PLOG_INFO << "Depth texture format: " << depthTexture->textureFormat;
+
 
         std::vector<wgpu::BindGroupLayoutEntry> bindingLayoutEntries(3, wgpu::Default);
         bindingLayoutEntries[0] = WGPUBindGroupLayoutEntry{
@@ -136,28 +142,9 @@ namespace Ajiva {
             std::cerr << "Could not load geometry!" << std::endl;
             return false;
         }
-        uniforms = {
-                .color = {1.0f, 0.5f, 0.0f, 1.0f},
-                .time = 1.0f,
-        };
+
 
         const int mipLevelCount = 8;
-/*    auto textureTest = context.CreateTexture(wgpu::TextureFormat::RGBA8Unorm, {256, 256, 1},
-                                             static_cast<const WGPUTextureUsage>(wgpu::TextureUsage::TextureBinding |
-                                                                                 wgpu::TextureUsage::CopyDst),
-                                             wgpu::TextureAspect::All, mipLevelCount, "Texture Test");
-
-    std::vector<uint8_t> pixels(4 * textureTest->size.width * textureTest->size.height);
-    for (uint32_t i = 0; i < textureTest->size.width; ++i) {
-        for (uint32_t j = 0; j < textureTest->size.height; ++j) {
-            uint8_t *p = &pixels[4 * (j * textureTest->size.width + i)];
-            p[0] = (i / 16) % 2 == (j / 16) % 2 ? 255 : 0; // r
-            p[1] = ((i - j) / 16) % 2 == 0 ? 255 : 0; // g
-            p[2] = ((i + j) / 16) % 2 == 0 ? 255 : 0; // b
-            p[3] = 255; // a
-        }
-    }
-    textureTest->WriteTextureMips(pixels.data(), pixels.size(), mipLevelCount);*/
 
         texture = loader.LoadTexture("fourareen2K_albedo.jpg", context);
         if (!texture) {
@@ -165,25 +152,28 @@ namespace Ajiva {
             return false;
         }
 
-        constexpr float PI = 3.14159265358979323846f;
-        using glm::mat4x4;
-        using glm::vec4;
-        using glm::vec3;
-        using glm::cos;
-        using glm::sin;
+        {
+            //camera stuff
+            constexpr float PI = 3.14159265358979323846f;
+            using glm::mat4x4;
+            using glm::vec4;
+            using glm::vec3;
+            using glm::cos;
+            using glm::sin;
 
 
-        vec3 eye = {0, 0, 0};
-        vec3 pos = {-2.0f, -3.0f, 2.0f};
-        mat4x4 V = glm::lookAt(pos, eye, vec3{0, 0, 1}); //z-up, (left handed ?? )
-        uniforms.viewMatrix = V;
-        uniforms.modelMatrix = glm::mat4(1.0f);
+            vec3 eye = {0, 0, 0};
+            vec3 pos = {-2.0f, -3.0f, 2.0f};
+            mat4x4 V = glm::lookAt(pos, eye, vec3{0, 0, 1}); //z-up, (left handed ?? )
+            uniforms.viewMatrix = V;
+            uniforms.modelMatrix = glm::mat4(1.0f);
 
-        float ratio = static_cast<float>(window.GetWidth()) / static_cast<float>(window.GetHeight());
-        float fov = 45.0f * PI / 180.0f;
-        float near = 0.01f;
-        float far = 100.0f;
-        uniforms.projectionMatrix = glm::perspective(fov, ratio, near, far);
+            float ratio = static_cast<float>(window.GetWidth()) / static_cast<float>(window.GetHeight());
+            float fov = 45.0f * PI / 180.0f;
+            float near = 0.01f;
+            float far = 100.0f;
+            uniforms.projectionMatrix = glm::perspective(fov, ratio, near, far);
+        }
 
         vertexBuffer = context.CreateFilledBuffer(vertexData.data(),
                                                   vertexData.size() * sizeof(Ajiva::Renderer::VertexData),
@@ -215,10 +205,9 @@ namespace Ajiva {
                 .sampler = *sampler
         };
 
-
         bindGroup = context.CreateBindGroup(bindGroupLayout, uniformBuffer, bindings);
 
-        PLOG_DEBUG << std::chrono::duration_cast<std::chrono::milliseconds>(clock.Total());
+        //PLOG_DEBUG << (f64)std::chrono::duration_cast<std::chrono::milliseconds>(clock.Total());
         //AJ_INFO("Startup Time: %s", clock.Total());
         clock.Update();
         return true;
@@ -324,5 +313,30 @@ namespace Ajiva {
         ImGui_ImplWGPU_Shutdown();
     }
 
+    void Application::OnResize(u16 width, u16 height) {
+        if (width == 0 || height == 0) return;
 
+        BuildSwapChain();
+
+        BuildDepthTexture();
+
+        //update "camera"
+        uniforms.projectionMatrix = glm::perspective(glm::radians(45.0f), static_cast<float>(window.GetWidth()) / static_cast<float>(window.GetHeight()), 0.1f, 100.0f);
+        uniformBuffer->UpdateBufferData(&uniforms, sizeof(Ajiva::Renderer::UniformData));
+    }
+
+    void Application::BuildSwapChain() {
+        if (swapChain) {
+            swapChain->release();
+        }
+
+        swapChain = context.CreateSwapChain(window.GetWidth(), window.GetHeight());
+    }
+
+    void Application::BuildDepthTexture() {
+        //the ref should auto release
+        depthTexture = context.CreateDepthTexture(
+                {static_cast<uint32_t>(window.GetWidth()), static_cast<uint32_t>(window.GetHeight()), 1});
+        PLOG_INFO << "Depth Texture " << depthTexture->texture << " " << depthTexture->view;
+    }
 }

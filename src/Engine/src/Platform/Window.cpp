@@ -6,21 +6,13 @@
 #include "Core/Logger.h"
 
 
-namespace Ajiva {
+namespace Ajiva::Platform {
+    Window::Window(const WindowConfig &config) : config(config) {
+    }
+
     Window::~Window() {
         if (window)
             glfwDestroyWindow(window);
-        glfwTerminate();
-    }
-
-
-    Window::Window(int width, int height, bool dedicatedThread)
-            : m_width(width), m_height(height), m_dedicatedThread(dedicatedThread) {
-        glfwSetErrorCallback(glfw_error_callback);
-        if (!glfwInit()) {
-            PLOG_ERROR << "Could not initialize GLFW!";
-            return;
-        }
     }
 
     std::function<wgpu::Surface(wgpu::Instance)> Window::CreateSurfaceFunk() {
@@ -29,11 +21,20 @@ namespace Ajiva {
         };
     }
 
-    bool CreateWindow(GLFWwindow **window, int m_width, int m_height) {
+    bool Window::CreateWindow() {
         glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-        glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
-        *window = glfwCreateWindow(m_width, m_height, "Ajiva Engine", NULL, NULL);
-        if (!*window) {
+        glfwWindowHint(GLFW_RESIZABLE, config.ResizeCallback ? GLFW_TRUE : GLFW_FALSE);
+        window = glfwCreateWindow(config.Width, config.Height, config.Name.c_str(), nullptr, nullptr);
+        glfwSetWindowPos(window, config.X, config.Y);
+        glfwSetWindowUserPointer(window, this);
+        glfwSetFramebufferSizeCallback(window, [](GLFWwindow *pWindow, int width, int height) {
+            auto *windowClass = reinterpret_cast<Window *>(glfwGetWindowUserPointer(pWindow));
+            windowClass->config.Width = static_cast<u16>(width);
+            windowClass->config.Height = static_cast<u16>(height);
+            if (windowClass->config.ResizeCallback)
+                windowClass->config.ResizeCallback(width, height);
+        });
+        if (!window) {
             PLOG_ERROR << "Could not create GLFW window!";
             glfwTerminate();
             return false;
@@ -42,9 +43,9 @@ namespace Ajiva {
     }
 
     void Window::Create() {
-        if (m_dedicatedThread) {
+        if (config.DedicatedThread) {
             auto thread = std::thread([this]() {
-                if (!CreateWindow(&window, m_width, m_height)) {
+                if (!CreateWindow()) {
                     m_cloesed = true;
                     return;
                 }
@@ -70,7 +71,7 @@ namespace Ajiva {
             }
             PLOG_INFO << "Window created!";
         } else {
-            if (!CreateWindow(&window, m_width, m_height))
+            if (!CreateWindow())
                 return;
         }
     }
@@ -80,11 +81,29 @@ namespace Ajiva {
     }
 
     bool Window::IsClosed() {
-        if (m_dedicatedThread)
+        if (config.DedicatedThread)
             return m_cloesed;
         if (!running)
             return true;
         glfwPollEvents();
         return glfwWindowShouldClose(window);
+    }
+
+     bool Window::Init() {
+        glfwSetErrorCallback(glfw_error_callback);
+        if (!glfwInit()) {
+            PLOG_ERROR << "Could not initialize GLFW!";
+            return false;
+        } else {
+            PLOG_VERBOSE << "GLFW initialized, IsGLFWInitialized: " << IsGLFWInitialized;
+            IsGLFWInitialized = true;
+            PLOG_INFO << "GLFW initialized, IsGLFWInitialized: " << IsGLFWInitialized;
+        }
+        return true;
+    }
+
+    void Window::Shutdown() {
+        if (IsGLFWInitialized)
+            glfwTerminate();
     }
 }

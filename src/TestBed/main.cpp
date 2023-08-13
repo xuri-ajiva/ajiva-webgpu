@@ -12,7 +12,7 @@
 
 #include "webgpu/webgpu.hpp"
 
-#include "Platform/Window.h"
+#include "Platform/PlatformSystem.h"
 #include "Renderer/GpuContext.cpp"
 
 #include "defines.h"
@@ -29,15 +29,19 @@ int main() {
     using namespace Ajiva::Renderer;
     using namespace Ajiva::Resource;
 
+    Ajiva::Platform::PlatformSystem::Init();
 
     {
-        ApplicationConfig config;
-        config.startWidth = 1920;
-        config.startHeight = 1080;
-        config.multiThread = false;
-        config.name = "Ajiva Engine";
-        config.resourceDirectory = RESOURCE_DIR;
 
+        ApplicationConfig config = {
+                .WindowConfig = {
+                        .Width = 1920,
+                        .Height = 1080,
+                        .DedicatedThread = false,
+                        .Name = "Ajiva Engine"
+                },
+                .ResourceDirectory = RESOURCE_DIR
+        };
         Application app(config);
         if (!app.Init()) {
             PLOG_FATAL << "Failed to Init Application";
@@ -50,6 +54,9 @@ int main() {
 
         app.Finish();
     }
+
+    Ajiva::Platform::PlatformSystem::Shutdown();
+
     AJ_CheckForLeaks();
 
 

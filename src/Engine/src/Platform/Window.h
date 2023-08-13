@@ -2,6 +2,7 @@
 // Created by XuriAjiva on 31.07.2023.
 //
 
+
 #pragma once
 
 #include "webgpu/webgpu.hpp"
@@ -15,12 +16,27 @@
 
 #include "defines.h"
 #include "glfw3webgpu.h"
+#include "plog/Log.h"
 
-namespace Ajiva {
+
+namespace Ajiva::Platform {
+
+    struct WindowConfig {
+        i16 X = 200;
+        i16 Y = 100;
+        i16 Width = 800;
+        i16 Height = 600;
+        bool DedicatedThread;
+        std::string Name;
+        std::function<void(u16, u16)> ResizeCallback;
+    };
+
     class Window {
-
     public:
-        explicit Window(int width = 800, int height = 600, bool dedicatedThread = true);
+        static bool Init();
+        static void Shutdown();
+
+        explicit Window(const WindowConfig &config);
 
         ~Window();
 
@@ -31,11 +47,11 @@ namespace Ajiva {
         }
 
         [[nodiscard]] inline int GetWidth() const {
-            return m_width;
+            return config.Width;
         }
 
         [[nodiscard]] inline int GetHeight() const {
-            return m_height;
+            return config.Height;
         }
 
         [[nodiscard]] bool IsClosed();
@@ -45,7 +61,7 @@ namespace Ajiva {
         }
 
         static void glfw_error_callback(int error, const char *description) {
-            std::cerr << "GLFW Error " << error << ": " << description << std::endl;
+            PLOG_ERROR << "GLFW Error: " << error << " " << description;
         }
 
         void Create();
@@ -53,12 +69,13 @@ namespace Ajiva {
         void Run();
 
     private:
+        WindowConfig config;
         bool running = false;
         GLFWwindow *window{};
-        int m_width;
-        int m_height;
         bool m_cloesed = false;
-        bool m_dedicatedThread = true;
+
+        bool CreateWindow();
+
+        inline static bool IsGLFWInitialized;
     };
 }
-

@@ -26,6 +26,8 @@ add_library(Engine STATIC
         src/Renderer/Renderer.cpp
         src/Renderer/Renderer.h
         src/Resource/ResourceManager.h
+        src/Platform/PlatformSystem.h
+        src/Platform/PlatformSystem.cpp
 )
 
 target_compile_definitions(Engine PRIVATE AJ_EXPORT)

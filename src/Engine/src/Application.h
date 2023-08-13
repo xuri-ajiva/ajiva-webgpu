@@ -12,13 +12,8 @@
 namespace Ajiva {
 
     struct ApplicationConfig {
-        i16 startX = 200;
-        i16 startY = 200;
-        i16 startWidth = 800;
-        i16 startHeight = 600;
-        bool multiThread = true;
-        std::string name;
-        std::string resourceDirectory;
+        Ajiva::Platform::WindowConfig WindowConfig;
+        std::string ResourceDirectory;
     };
 
     class Application {
@@ -36,10 +31,12 @@ namespace Ajiva {
 
         ~Application();
 
+        void OnResize(u16 width, u16 height);
+
     private:
         ApplicationConfig config = {};
         Ajiva::Core::Clock clock = {};
-        Ajiva::Window window;
+        Ajiva::Platform::Window window;
         Ajiva::Renderer::GpuContext context;
         Ajiva::Resource::Loader loader;
 
@@ -65,5 +62,8 @@ namespace Ajiva {
 
         void AfterRenderFrameImGui();
 
+        void BuildSwapChain();
+
+        void BuildDepthTexture();
     };
 }
