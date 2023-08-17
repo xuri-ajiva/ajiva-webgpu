@@ -58,6 +58,7 @@ namespace Ajiva::Renderer {
         Ref<wgpu::Device> device;
         Ref<wgpu::Queue> queue;
         wgpu::TextureFormat swapChainFormat = wgpu::TextureFormat::Undefined;
+        wgpu::TextureFormat depthTextureFormat = wgpu::TextureFormat::Depth24Plus;
 
         GpuContext();
 

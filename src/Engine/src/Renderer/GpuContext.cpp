@@ -302,7 +302,7 @@ namespace Ajiva::Renderer {
     }
 
     Ref<Ajiva::Renderer::Texture> GpuContext::CreateDepthTexture(const WGPUExtent3D &textureSize) {
-        return CreateTexture(wgpu::TextureFormat::Depth24Plus, textureSize, wgpu::TextureUsage::RenderAttachment,
+        return CreateTexture(depthTextureFormat, textureSize, wgpu::TextureUsage::RenderAttachment,
                              wgpu::TextureAspect::DepthOnly, 1, "DepthTexture");
     }
 
