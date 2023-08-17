@@ -5,10 +5,6 @@
 
 #include "defines.h"
 
-#define PLOG_CAPTURE_FILE
-
-#include <plog/Log.h>
-
 namespace Ajiva::Core {
     AJ_API void ShowAppLog(bool *p_open);
 

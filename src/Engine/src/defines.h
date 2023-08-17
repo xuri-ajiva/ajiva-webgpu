@@ -6,6 +6,10 @@
 #include <memory>
 #include <cstdint>
 
+#define PLOG_CAPTURE_FILE
+
+#include <plog/Log.h>
+
 // based on https://github.com/travisvroman/kohi/blob/8cf14746f61799184d21f96a4885eef20dede3f9/engine/src/defines.h
 
 // Unsigned int types.
@@ -227,3 +231,4 @@ namespace Ajiva {
         return std::make_shared<T>(std::forward<Args>(args)...);
     }
 }
+constexpr float PI = 3.14159265358979323846f;

@@ -43,7 +43,7 @@ namespace Ajiva::Renderer {
         return 0;
     }
 
-    struct BufferElement {
+    struct AJ_API BufferElement {
         std::string Name;
         ShaderDataType Type;
         uint32_t Size;
@@ -126,7 +126,7 @@ namespace Ajiva::Renderer {
 
     class GpuContext;
 
-    class Buffer {
+    class AJ_API Buffer {
     private:
         bool cleanUp = true;
         Ref<wgpu::Queue> m_queue;

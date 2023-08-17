@@ -10,7 +10,7 @@
 namespace Ajiva {
     namespace Renderer {
 
-        class Texture {
+        class AJ_API Texture {
             bool cleanUp = true;
             Ref<wgpu::Queue> queue;
         public:
