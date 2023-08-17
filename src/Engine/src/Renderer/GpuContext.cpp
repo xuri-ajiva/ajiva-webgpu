@@ -9,18 +9,18 @@
 
 namespace Ajiva::Renderer {
     bool GpuContext::Init(const std::function<wgpu::Surface(wgpu::Instance)> &createSurface) {
-        instance = std::make_unique<wgpu::Instance>(createInstance(wgpu::InstanceDescriptor{}));
+        instance = CreateScope<wgpu::Instance>(createInstance(wgpu::InstanceDescriptor{}));
         if (!instance) {
             AJ_FAIL("Could not initialize WebGPU!");
             return false;
         }
         PLOG_INFO << "WebGPU instance: " << instance.get();
-        surface = std::make_unique<wgpu::Surface>(createSurface(*instance));
+        surface = CreateScope<wgpu::Surface>(createSurface(*instance));
 
         PLOG_INFO << "Requesting adapter...";
         wgpu::RequestAdapterOptions adapterOpts;
         adapterOpts.compatibleSurface = *surface;
-        adapter = std::make_unique<wgpu::Adapter>(instance->requestAdapter(adapterOpts));
+        adapter = CreateScope<wgpu::Adapter>(instance->requestAdapter(adapterOpts));
         PLOG_INFO << "Got adapter: " << adapter.get();
         wgpu::SupportedLimits supportedLimits;
         adapter->getLimits(&supportedLimits);
@@ -50,7 +50,7 @@ namespace Ajiva::Renderer {
         deviceDesc.requiredFeaturesCount = 0; // we do not require any specific feature
         deviceDesc.requiredLimits = &requiredLimits;
         deviceDesc.defaultQueue.label = "The default queue";
-        device = std::make_unique<wgpu::Device>(adapter->requestDevice(deviceDesc));
+        device = CreateScope<wgpu::Device>(adapter->requestDevice(deviceDesc));
         PLOG_INFO << "Got device: " << device.get();
 
         callback = device->setUncapturedErrorCallback([](wgpu::ErrorType type, char const *message) {
@@ -67,7 +67,7 @@ namespace Ajiva::Renderer {
         device->getLimits(&supportedLimits);
         PLOG_INFO << "device.maxVertexAttributes: " << supportedLimits.limits.maxVertexAttributes;
 
-        queue = std::make_unique<wgpu::Queue>(device->getQueue());
+        queue = CreateScope<wgpu::Queue>(device->getQueue());
         queue->onSubmittedWorkDone([](wgpu::QueueWorkDoneStatus status) {
             PLOG_VERBOSE
                         << "QueueWorkDoneStatus: " << magic_enum::enum_name<WGPUQueueWorkDoneStatus>(status).data();
@@ -98,7 +98,7 @@ namespace Ajiva::Renderer {
 
         wgpu::SwapChain swapChain = device->createSwapChain(*surface, swapChainDesc);
         PLOG_INFO << "Created swap chain: " << &swapChain;
-        return std::make_unique<wgpu::SwapChain>(swapChain);
+        return CreateScope<wgpu::SwapChain>(swapChain);
     }
 
     wgpu::CommandEncoder GpuContext::CreateCommandEncoder(const char *label) const {
@@ -179,7 +179,7 @@ namespace Ajiva::Renderer {
 
         wgpu::ShaderModule shaderModule = device->createShaderModule(shaderDesc);
         PLOG_INFO << "Created shader module: " << &shaderModule;
-        return std::make_unique<wgpu::ShaderModule>(shaderModule);
+        return CreateScope<wgpu::ShaderModule>(shaderModule);
     }
 
     Ref<wgpu::RenderPipeline> GpuContext::CreateRenderPipeline(const Ref<wgpu::ShaderModule> &shaderModule,
@@ -267,7 +267,7 @@ namespace Ajiva::Renderer {
 
         wgpu::RenderPipeline pipeline = device->createRenderPipeline(pipelineDesc);
         PLOG_INFO << "Render pipeline: " << pipeline;
-        return std::make_unique<wgpu::RenderPipeline>(pipeline);
+        return CreateScope<wgpu::RenderPipeline>(pipeline);
     }
 
     Ref<Ajiva::Renderer::Texture>

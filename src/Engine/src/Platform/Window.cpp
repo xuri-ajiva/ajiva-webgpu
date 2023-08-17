@@ -13,7 +13,12 @@ namespace Ajiva::Platform {
 
     Window::~Window() {
         if (window) {
-            glfwDestroyWindow(window);
+            PLOG_INFO << "Destroying window!";
+            try {
+                glfwDestroyWindow(window);
+            } catch (...) {
+                PLOG_WARNING << "Failed to destroy window!";
+            }
         }
     }
 

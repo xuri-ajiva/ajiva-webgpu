@@ -6,8 +6,8 @@ project(
         DESCRIPTION "Ajiva Engine"
 )
 
-
 add_library(Engine STATIC
+        #SHARED
         src/library.cpp
         src/Platform/Window.cpp
         src/Renderer/GpuContext.cpp
@@ -28,10 +28,24 @@ add_library(Engine STATIC
         src/Resource/ResourceManager.h
         src/Platform/PlatformSystem.h
         src/Platform/PlatformSystem.cpp
+        src/Renderer/Camera.cpp
+        src/Renderer/Camera.h
+        src/Core/EventSystem.cpp
+        src/Core/EventSystem.h
+        src/implementations.cpp
+        src/Core/Layer.h
+        src/Renderer/ImGuiLayer.cpp
+        src/Renderer/ImGuiLayer.h
+        src/Core/Layer.cpp
 )
 
 target_compile_definitions(Engine PRIVATE AJ_EXPORT)
 target_compile_definitions(Engine PRIVATE AJ_LOG_IMGUI)
 
-target_link_libraries(Engine PUBLIC glfw webgpu IMGUI plog glm PRIVATE glfw3webgpu)
+target_link_libraries(Engine PUBLIC glfw imgui plog glm glfw3webgpu PUBLIC webgpu)
+
+include(GenerateExportHeader)
+generate_export_header(Engine)
+
 target_include_directories(Engine PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
+set_target_properties(Engine PROPERTIES LINK_FLAGS "/PROFILE")

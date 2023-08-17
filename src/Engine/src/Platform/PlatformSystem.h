@@ -7,9 +7,10 @@
 #include "Platform/Window.h"
 
 namespace Ajiva::Platform {
-    class PlatformSystem {
+    class AJ_API PlatformSystem {
     public:
         static bool Init();
+
         static void Shutdown();
     };
 } // Ajiva::Platform

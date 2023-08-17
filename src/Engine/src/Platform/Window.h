@@ -10,10 +10,6 @@
 #include <functional>
 #include <thread>
 
-#include "imgui.h"
-#include "imgui_impl_glfw.h"
-#include "imgui_impl_wgpu.h"
-
 #include "defines.h"
 #include "glfw3webgpu.h"
 #include "plog/Log.h"
