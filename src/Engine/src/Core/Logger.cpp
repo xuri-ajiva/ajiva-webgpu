@@ -45,26 +45,26 @@ public:
         static ImVec4 Colors[7] = {
                 {0.5f, 0.5f, 0.5f, 1.0f},//none = 0,
                 {1.0f, 0.0f, 0.0f, 1.0f},//fatal = 1,
-                {1.0f, 0.5f, 0.0f, 1.0f},//error = 2,
+                {1.0f, 0.2f, 0.2f, 1.0f},//error = 2,
                 {1.0f, 1.0f, 0.0f, 1.0f},//warning = 3,
                 {1.0f, 1.0f, 1.0f, 1.0f},//info = 4,
                 {0.7f, 1.0f, 1.0f, 1.0f},//debug = 5,
                 {0.0f, 0.4f, 0.4f, 1.0f},//verbose = 6
         };
 
-        // Options menu
-        if (ImGui::BeginPopup("Options")) {
-            ImGui::Checkbox("Auto-scroll", &AutoScroll);
-            ImGui::EndPopup();
-        }
-
         // Main window
-        if (ImGui::Button("Options"))
-            ImGui::OpenPopup("Options");
-        ImGui::SameLine();
         bool clear = ImGui::Button("Clear");
         ImGui::SameLine();
         bool copy = ImGui::Button("Copy");
+        ImGui::SameLine();
+        if (ImGui::Button("Example")) {
+            PLOG_VERBOSE << "This is a VERBOSE message";
+            PLOG_DEBUG << "This is a DEBUG message";
+            PLOG_INFO << "This is an INFO message";
+            PLOG_WARNING << "This is a WARNING message";
+            PLOG_ERROR << "This is an ERROR message";
+            PLOG_FATAL << "This is a FATAL message";
+        }
 
         ImGui::Checkbox("None", &SeverityFilter[0]);
         ImGui::SameLine();
@@ -87,7 +87,6 @@ public:
                 m_messageList.clear();
             if (copy)
                 ImGui::LogToClipboard();
-
 
             ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
 
@@ -120,8 +119,8 @@ public:
 
                     ImGui::TableNextRow();
 
-                    if (severity > 0 && severity < Severity::info) {
-                        ImGui::PushStyleColor(ImGuiCol_Text, /*black*/ImVec4(0.0f, 0.0f, 0.0f, 1.0f));
+                    if (severity == Severity::fatal) {
+                        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 1.0f, 1.0f, 1.0f));
                         ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg1, color);
                     } else {
                         ImGui::PushStyleColor(ImGuiCol_Text, color.Value);
@@ -138,7 +137,7 @@ public:
                     ImGui::TableNextColumn();
                     ImGui::TextWrapped("%s:%zu", record.getFile(), record.getLine());
                     ImGui::TableNextColumn();
-#ifdef _WIN32
+#ifdef AJ_PLATFORM_WINDOWS
                     std::wstring w_string(record.getMessage());
                     std::string string(w_string.begin(), w_string.end());
                     ImGui::TextWrapped("%s", string.c_str());
@@ -147,6 +146,7 @@ public:
 #endif
                     ImGui::PopStyleColor();
                     ImGui::TableNextColumn();
+
                 }
 
                 ImGui::EndTable();
@@ -157,25 +157,22 @@ public:
             if (copy)
                 ImGui::LogFinish();
 
-            if (AutoScroll && ImGui::GetScrollY() >= ImGui::GetScrollMaxY())
-                ImGui::SetScrollHereY(1.0f);
         }
         ImGui::EndChild();
     }
 
 private:
     std::list<Record> m_messageList;
-    bool AutoScroll;  // Keep scrolling if already at the bottom.
     bool SeverityFilter[7] = {true, true, true, true, true, true, false};
-
 };
 
 static ImGuiAppender<plog::TxtFormatter> imgui_appender;
 
 void Ajiva::Core::ShowAppLog(bool *p_open) {
     ImGui::SetNextWindowSize(ImVec2(500, 400), ImGuiCond_FirstUseEver);
-    ImGui::Begin("Log", p_open);
-    imgui_appender.Draw();
+    if (ImGui::Begin("Log", p_open)) {
+        imgui_appender.Draw();
+    }
     ImGui::End();
 }
 
