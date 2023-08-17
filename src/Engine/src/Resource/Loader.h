@@ -6,9 +6,11 @@
 #include "defines.h"
 #include <filesystem>
 #include "Renderer/GpuContext.h"
+#include "stb_image.h"
+#include "tiny_obj_loader.h"
 
 namespace Ajiva::Resource {
-    class Loader {
+    class AJ_API Loader {
     public:
         Loader() = default;
         explicit Loader(std::filesystem::path resourceDirectory) : resourceDirectory(std::move(resourceDirectory)) {}

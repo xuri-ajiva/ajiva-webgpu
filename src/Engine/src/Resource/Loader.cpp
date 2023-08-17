@@ -7,14 +7,6 @@
 #include <fstream>
 #include <vector>
 
-#define TINYOBJLOADER_IMPLEMENTATION
-
-#include "tiny_obj_loader.h"
-
-#define STB_IMAGE_IMPLEMENTATION
-
-#include "stb_image.h"
-
 namespace Ajiva::Resource {
     bool Loader::LoadGeometryFromSimpleTxt(const std::filesystem::path &resourcePath,
                                            std::vector<Renderer::VertexData> &pointData,
