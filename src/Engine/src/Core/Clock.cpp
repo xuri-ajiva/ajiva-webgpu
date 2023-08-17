@@ -13,6 +13,7 @@ void Ajiva::Core::Clock::Update() {
     auto now = ClockType::now();
     m_delta = now - m_last;
     m_last = now;
+    m_ticks++;
 }
 
 [[nodiscard]] Duration Ajiva::Core::Clock::Delta() const {
@@ -21,4 +22,15 @@ void Ajiva::Core::Clock::Update() {
 
 [[nodiscard]] Duration Ajiva::Core::Clock::Total() const {
     return ClockType::now() - m_start;
+}
+
+void Ajiva::Core::Clock::Reset() {
+    m_start = ClockType::now();
+    m_last = m_start;
+    m_delta = Duration{};
+    m_ticks = 0;
+}
+
+u64 Ajiva::Core::Clock::Ticks() const {
+    return m_ticks;
 }

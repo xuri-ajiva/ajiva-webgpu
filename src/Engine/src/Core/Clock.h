@@ -4,7 +4,7 @@
 #include <chrono>
 
 namespace Ajiva::Core {
-    struct Clock {
+    struct AJ_API Clock {
         using ClockType = std::chrono::high_resolution_clock;
         using TimePoint = ClockType::time_point;
         using Duration = ClockType::duration;
@@ -13,14 +13,19 @@ namespace Ajiva::Core {
         TimePoint m_start{};
         TimePoint m_last{};
         Duration m_delta{};
+        u64 m_ticks{};
 
     public:
-        AJ_API void Start();
+        void Start();
 
-        AJ_API void Update();
+        void Reset();
 
-        [[nodiscard]] AJ_API Duration Delta() const;
+        void Update();
 
-        [[nodiscard]] AJ_API Duration Total() const;
+        [[nodiscard]] Duration Delta() const;
+
+        [[nodiscard]] Duration Total() const;
+
+        [[nodiscard]] u64 Ticks() const;
     };
 }
