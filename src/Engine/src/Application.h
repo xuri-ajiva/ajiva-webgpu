@@ -9,15 +9,17 @@
 #include "Resource/Loader.h"
 #include "Core/Clock.h"
 #include "Core/EventSystem.h"
+#include "Renderer/Camera.h"
+#include "Core/Layer.h"
+
 
 namespace Ajiva {
-
     struct ApplicationConfig {
         Ajiva::Platform::WindowConfig WindowConfig;
         std::string ResourceDirectory;
     };
 
-    class Application {
+    class AJ_API Application {
 
     public:
         explicit Application(ApplicationConfig config);
@@ -32,14 +34,14 @@ namespace Ajiva {
 
         ~Application();
 
-        void OnResize(u16 width, u16 height);
+        bool OnResize(Ajiva::Core::EventCode code, void *sender, const Ajiva::Core::EventContext &event);
 
     private:
         ApplicationConfig config = {};
         Ajiva::Core::Clock clock = {};
-        Ajiva::Platform::Window window;
-        Ajiva::Renderer::GpuContext context;
-        Ajiva::Resource::Loader loader;
+        Ref<Ajiva::Platform::Window> window;
+        Ref<Ajiva::Renderer::GpuContext> context;
+        Ref<Ajiva::Resource::Loader> loader;
         Ref<Core::EventSystem> eventSystem = nullptr;
 
 
@@ -54,16 +56,12 @@ namespace Ajiva {
         std::vector<Ajiva::Renderer::VertexData> vertexData;
         std::vector<u16> indexData;
         Ref<Renderer::Texture> texture;
+        Ref<Renderer::Camera> camera;
 
-
+        std::vector<Ref<Ajiva::Core::Layer>> layers;
+        std::vector<Ref<Ajiva::Core::IListener>> events;
     private:
-        void SetupImGui();
-
         bool SetupPipeline();
-
-        void BeforeRenderFrameImGui();
-
-        void AfterRenderFrameImGui();
 
         void BuildSwapChain();
 

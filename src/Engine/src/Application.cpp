@@ -5,70 +5,49 @@
 #include "Application.h"
 #include "Resource/ResourceManager.h"
 #include <glm/ext.hpp>
+#include "Core/Layer.h"
+#include "Renderer/ImGuiLayer.h"
 
 namespace Ajiva {
 
-    Application::~Application() {
-        //layer stack destructor
-
-        window.RequestClose();
-    }
+    Application::~Application() = default;
 
     Application::Application(ApplicationConfig config) : config(std::move(config)) {}
+
+    inline void onMouseButtonDown(AJ_EVENT_PARAMETERS) {
+        PLOG_INFO << "onMouseButtonDown";
+    }
 
     bool Application::Init() {
         Core::SetupLogger();
         PLOG_INFO << "Hello, World!";
-
         eventSystem = CreateRef<Core::EventSystem>();
-        AJ_EVENT_REGISTER(*eventSystem, Core::FramebufferResize, Application,
-                          that->OnResize(event.framebufferSize.width, event.framebufferSize.height);
-        );
-/* TODO Input manager
- * AJ_EVENT_REGISTER(*eventSystem, Core::KeyDown, Application,
-                          that->OnKey(event.key.key, event.key.scancode, event.key.action, event.key.mods);
-        );
-        AJ_EVENT_REGISTER(*eventSystem, Core::MouseButtonDown, Application,
-                          that->OnMouseButton(event.mouse.click.button, GLFW_PRESS, event.mouse.click.mods);
-        );*/
+        //events.push_back(eventSystem->AddEventListener<Core::FramebufferResize>(AJ_EVENT_CALLBACK_VOID(OnResize)));
+        events.push_back(eventSystem->Add(Core::FramebufferResize, this, &Application::OnResize));
 
-        loader = Resource::Loader(config.ResourceDirectory);
-        window = Platform::Window(config.WindowConfig, eventSystem);
+        context = CreateRef<Renderer::GpuContext>();
+        loader = CreateRef<Resource::Loader>(config.ResourceDirectory);
+        window = CreateRef<Platform::Window>(config.WindowConfig, eventSystem);
+
         clock.Start();
-        window.Create();
-        if (!context.Init(window.CreateSurfaceFunk())) return false;
-        window.Run();
+        window->Create();
+        if (!context->Init(window->CreateSurfaceFunk())) return false;
+        window->Run();
 
-        ///Foreach layer init
-        SetupImGui();
+        //ImGui first to block camera input
+        Renderer::ImGuiLayer imGuiLayer(window, context, eventSystem);
+        camera = CreateRef<Renderer::Camera>(eventSystem);
+        camera->Init();
+
+        //layers
+        layers.push_back(CreateRef<Renderer::ImGuiLayer>(imGuiLayer));
+
+        for (const auto &layer: layers) {
+            if (!layer->IsEnabled()) continue;
+            layer->Attached();
+        }
         SetupPipeline();
         return true;
-    }
-
-    void Application::SetupImGui() {
-        IMGUI_CHECKVERSION();
-        ImGui::CreateContext();
-        ImGuiIO &io = ImGui::GetIO();
-        (void) io;
-        io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
-        io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
-        io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;         // Enable Docking
-        //io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;       // Enable Multi-Viewport / Platform Windows
-
-        // Setup Dear ImGui style
-        ImGui::StyleColorsDark();
-        //ImGui::StyleColorsLight();
-
-        // When viewports are enabled we tweak WindowRounding/WindowBg so platform windows can look identical to regular ones.
-        ImGuiStyle &style = ImGui::GetStyle();
-        if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
-            style.WindowRounding = 0.0f;
-            style.Colors[ImGuiCol_WindowBg].w = 1.0f;
-        }
-
-        // Setup Platform/Renderer backends
-        ImGui_ImplGlfw_InitForOther(window.GetWindow(), true);
-        ImGui_ImplWGPU_Init(*context.device, 2, context.swapChainFormat, WGPUTextureFormat_Undefined);
     }
 
     bool Application::SetupPipeline() {
@@ -83,7 +62,7 @@ namespace Ajiva {
         BuildDepthTexture();
 
         //todo move to member??? or not
-        Ref<wgpu::ShaderModule> shaderModule = context.CreateShaderModuleFromCode(loader.LoadFile("shader.wgsl"));
+        Ref<wgpu::ShaderModule> shaderModule = context->CreateShaderModuleFromCode(loader->LoadFile("shader.wgsl"));
 
         // Vertex fetch
         // We now have 2 attributes
@@ -110,8 +89,8 @@ namespace Ajiva {
                 },
         };
 
-/*    auto depthTexture = context.CreateTexture(TextureFormat::Depth24Plus, {static_cast<uint32_t>(window.GetWidth()),
-                                                                           static_cast<uint32_t>(window.GetHeight()),
+/*    auto depthTexture = context->CreateTexture(TextureFormat::Depth24Plus, {static_cast<uint32_t>(window->GetWidth()),
+                                                                           static_cast<uint32_t>(window->GetHeight()),
                                                                            1});*/
 
 
@@ -141,16 +120,16 @@ namespace Ajiva {
                 },
         };
 
-        auto bindGroupLayout = context.CreateBindGroupLayout(bindingLayoutEntries);
-        renderPipeline = context.CreateRenderPipeline(shaderModule, std::vector{*bindGroupLayout}, vertexAttribs,
-                                                      depthTexture->textureFormat);
+        auto bindGroupLayout = context->CreateBindGroupLayout(bindingLayoutEntries);
+        renderPipeline = context->CreateRenderPipeline(shaderModule, std::vector{*bindGroupLayout}, vertexAttribs,
+                                                       depthTexture->textureFormat);
 
-        /*bool success = loader.LoadGeometryFromSimpleTxt( "pyramid.txt", vertexData, indexData);
+        /*bool success = loader->LoadGeometryFromSimpleTxt( "pyramid.txt", vertexData, indexData);
         if (!success) {
             PLOG_ERROR << "Could not load geometry!";
             return 1;
         }*/
-        bool success = loader.LoadGeometryFromObj("fourareen.obj", vertexData, indexData);
+        bool success = loader->LoadGeometryFromObj("fourareen.obj", vertexData, indexData);
         if (!success) {
             std::cerr << "Could not load geometry!" << std::endl;
             return false;
@@ -159,7 +138,7 @@ namespace Ajiva {
 
         const int mipLevelCount = 8;
 
-        texture = loader.LoadTexture("fourareen2K_albedo.jpg", context);
+        texture = loader->LoadTexture("fourareen2K_albedo.jpg", *context);
         if (!texture) {
             AJ_FAIL("Could not load texture!");
             return false;
@@ -167,7 +146,6 @@ namespace Ajiva {
 
         {
             //camera stuff
-            constexpr float PI = 3.14159265358979323846f;
             using glm::mat4x4;
             using glm::vec4;
             using glm::vec3;
@@ -181,26 +159,26 @@ namespace Ajiva {
             uniforms.viewMatrix = V;
             uniforms.modelMatrix = glm::mat4(1.0f);
 
-            float ratio = static_cast<float>(window.GetWidth()) / static_cast<float>(window.GetHeight());
+            float ratio = static_cast<float>(window->GetWidth()) / static_cast<float>(window->GetHeight());
             float fov = 45.0f * PI / 180.0f;
             float near = 0.01f;
             float far = 100.0f;
             uniforms.projectionMatrix = glm::perspective(fov, ratio, near, far);
         }
 
-        vertexBuffer = context.CreateFilledBuffer(vertexData.data(),
-                                                  vertexData.size() * sizeof(Ajiva::Renderer::VertexData),
-                                                  wgpu::BufferUsage::CopyDst | wgpu::BufferUsage::Vertex,
-                                                  "Vertex Buffer");
-        /*auto indexBuffer = context.CreateFilledBuffer(indexData.data(), indexData.size() * sizeof(uint16_t),
+        vertexBuffer = context->CreateFilledBuffer(vertexData.data(),
+                                                   vertexData.size() * sizeof(Ajiva::Renderer::VertexData),
+                                                   wgpu::BufferUsage::CopyDst | wgpu::BufferUsage::Vertex,
+                                                   "Vertex Buffer");
+        /*auto indexBuffer = context->CreateFilledBuffer(indexData.data(), indexData.size() * sizeof(uint16_t),
                                                       wgpu::BufferUsage::CopyDst | wgpu::BufferUsage::Index,
                                                       "Index Buffer");*/
-        uniformBuffer = context.CreateFilledBuffer(&uniforms, sizeof(Ajiva::Renderer::UniformData),
-                                                   wgpu::BufferUsage::CopyDst | wgpu::BufferUsage::Uniform,
-                                                   "Uniform Buffer");
+        uniformBuffer = context->CreateFilledBuffer(&uniforms, sizeof(Ajiva::Renderer::UniformData),
+                                                    wgpu::BufferUsage::CopyDst | wgpu::BufferUsage::Uniform,
+                                                    "Uniform Buffer");
 
-        auto sampler = context.CreateSampler(wgpu::AddressMode::Repeat, wgpu::FilterMode::Linear,
-                                             wgpu::CompareFunction::Undefined, 0.0f, 1.0f * mipLevelCount, "Sampler");
+        auto sampler = context->CreateSampler(wgpu::AddressMode::Repeat, wgpu::FilterMode::Linear,
+                                              wgpu::CompareFunction::Undefined, 0.0f, 1.0f * mipLevelCount, "Sampler");
 
         std::vector<wgpu::BindGroupEntry> bindings(3);
         bindings[0] = WGPUBindGroupEntry{
@@ -218,16 +196,16 @@ namespace Ajiva {
                 .sampler = *sampler
         };
 
-        bindGroup = context.CreateBindGroup(bindGroupLayout, uniformBuffer, bindings);
+        bindGroup = context->CreateBindGroup(bindGroupLayout, uniformBuffer, bindings);
 
-        //PLOG_DEBUG << (f64)std::chrono::duration_cast<std::chrono::milliseconds>(clock.Total());
         //AJ_INFO("Startup Time: %s", clock.Total());
-        clock.Update();
+        PLOG_DEBUG << std::chrono::duration_cast<std::chrono::milliseconds>(clock.Total());
+        clock.Reset();
         return true;
     }
 
     bool Application::IsRunning() {
-        return !window.IsClosed();
+        return !window->IsClosed();
     }
 
     void Application::Frame() {
@@ -236,36 +214,44 @@ namespace Ajiva {
         using glm::vec3;
 
         clock.Update();
+        Core::FrameInfo frameInfo = {clock.Ticks(),
+                                     std::chrono::duration_cast<std::chrono::duration<float>>(clock.Delta()).count(),
+                                     std::chrono::duration_cast<std::chrono::duration<float>>(clock.Total()).count()};
 
         ///Before Render
+
+        for (const auto &layer: layers) {
+            if (!layer->IsEnabled()) continue;
+            layer->BeforeRender();
+        }
+
         wgpu::TextureView nextTexture = swapChain->getCurrentTextureView();
         //std::cout << "nextTexture: " << nextTexture << std::endl;
 
         if (!nextTexture) {
             std::cerr << "Cannot acquire next swap chain texture" << std::endl;
-            window.RequestClose();
+            window->RequestClose();
         }
 
         //update "camera"
-        std::chrono::high_resolution_clock::duration delta = clock.Total();
-        uniforms.time = std::chrono::duration_cast<std::chrono::duration<float>>(delta).count();
-        uniforms.modelMatrix = glm::rotate(mat4x4(1.0), uniforms.time, vec3(0.0, 0.0, 1.0)) *
+        uniforms.time = frameInfo.TotalTime;
+/*        uniforms.modelMatrix = glm::rotate(mat4x4(1.0), uniforms.time, vec3(0.0, 0.0, 1.0)) *
                                glm::translate(mat4x4(1.0), vec3(0.5, 0.0, 0.0)) *
-                               glm::scale(mat4x4(1.0), vec3(0.8f));
+                               glm::scale(mat4x4(1.0), vec3(0.8f));*/
+        uniforms.viewMatrix = camera->viewMatrix;
         uniformBuffer->UpdateBufferData(&uniforms, sizeof(Ajiva::Renderer::UniformData));
 
-        BeforeRenderFrameImGui();
+        for (const auto &layer: layers) {
+            if (!layer->IsEnabled()) continue;
+            layer->Render(frameInfo);
+        }
 
-        ///Render
 
+        wgpu::CommandEncoder encoder = context->CreateCommandEncoder();
 
-        wgpu::CommandEncoder encoder = context.CreateCommandEncoder();
-
-        wgpu::RenderPassEncoder renderPass = context.CreateRenderPassEncoder(encoder, nextTexture,
-                                                                             depthTexture->view,
-                                                                             {0.4, 0.4, 0.4, 1.0});
+        wgpu::RenderPassEncoder renderPass = context->CreateRenderPassEncoder(encoder, nextTexture, depthTexture->view,
+                                                                              {0.4, 0.4, 0.4, 1.0});
         renderPass.setPipeline(*renderPipeline);
-
         renderPass.setVertexBuffer(0, vertexBuffer->buffer, 0, vertexData.size() * sizeof(Ajiva::Renderer::VertexData));
         /* renderPass.setIndexBuffer(indexBuffer->buffer, wgpu::IndexFormat::Uint16, 0,
                                    indexData.size() * sizeof(uint16_t));*/
@@ -273,71 +259,45 @@ namespace Ajiva {
         //renderPass.drawIndexed(indexData.size(), 1, 0, 0, 0);
         renderPass.draw(vertexData.size(), 1, 0, 0);
 
-
-
-        //ImGui_ImplWGPU_RenderDrawData(ImGui::GetDrawData(), renderPass);
-
+        for (const auto &layer: layers) {
+            if (!layer->IsEnabled()) continue;
+            layer->AfterRender(renderPass);
+        }
 
         renderPass.end();
 
         nextTexture.release();
 
-        context.SubmitEncoder(encoder);
+        context->SubmitEncoder(encoder);
 
         swapChain->present();
-
-        ///After Render
-        AfterRenderFrameImGui();
-    }
-
-    inline static bool show_demo_window = true;
-    inline static bool app_log_open = true;
-
-    void Application::BeforeRenderFrameImGui() {
-        ImGuiIO &io = ImGui::GetIO();
-        //io.DisplaySize = ImVec2((float) window.GetWidth(), (float) window.GetHeight());
-        ImGui_ImplWGPU_NewFrame();
-        ImGui_ImplGlfw_NewFrame();
-        ImGui::NewFrame();
-
-
-        ImGui::ShowDemoWindow(&show_demo_window);
-        Core::ShowAppLog(&app_log_open);
-
-        ImGui::Render();
-    }
-
-    void Application::AfterRenderFrameImGui() {
-        ImGuiIO &io = ImGui::GetIO();
-        if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
-            GLFWwindow *backup_current_context = glfwGetCurrentContext();
-            ImGui::UpdatePlatformWindows();
-            ImGui::RenderPlatformWindowsDefault();
-            glfwMakeContextCurrent(backup_current_context);
-        }
     }
 
     void Application::Finish() {
+        for (const auto &layer: layers) {
+            if (!layer->IsEnabled()) continue;
+            layer->Detached();
+        }
+        layers.clear();
         swapChain->release();
-
-        ///Foreach layer Shutdown
-
-        ImGui_ImplGlfw_Shutdown();
-        ImGui_ImplWGPU_Shutdown();
     }
 
-    void Application::OnResize(u16 width, u16 height) {
-        if (width == 0 || height == 0) return;
+    bool Application::OnResize(Ajiva::Core::EventCode code, void *sender, const Ajiva::Core::EventContext &event) {
+        if (event.framebufferSize.width == 0 || event.framebufferSize.height == 0) {
+            PLOG_INFO << "Framebuffer size is 0!";
+            return false;
+        }
 
         BuildSwapChain();
 
         BuildDepthTexture();
 
         //update "camera"
-        uniforms.projectionMatrix = glm::perspective(glm::radians(45.0f), static_cast<float>(window.GetWidth()) /
-                                                                          static_cast<float>(window.GetHeight()), 0.1f,
-                                                     100.0f);
+        uniforms.projectionMatrix = glm::perspective(glm::radians(45.0f), static_cast<float>(event.windowRect.width) /
+                                                                          static_cast<float>(event.windowRect.height),
+                                                     0.1f, 100.0f);
         uniformBuffer->UpdateBufferData(&uniforms, sizeof(Ajiva::Renderer::UniformData));
+        return false;
     }
 
     void Application::BuildSwapChain() {
@@ -345,13 +305,13 @@ namespace Ajiva {
             swapChain->release();
         }
 
-        swapChain = context.CreateSwapChain(window.GetWidth(), window.GetHeight());
+        swapChain = context->CreateSwapChain(window->GetWidth(), window->GetHeight());
     }
 
     void Application::BuildDepthTexture() {
         //the ref should auto release
-        depthTexture = context.CreateDepthTexture(
-                {static_cast<uint32_t>(window.GetWidth()), static_cast<uint32_t>(window.GetHeight()), 1});
+        depthTexture = context->CreateDepthTexture(
+                {static_cast<uint32_t>(window->GetWidth()), static_cast<uint32_t>(window->GetHeight()), 1});
         PLOG_INFO << "Depth Texture " << depthTexture->texture << " " << depthTexture->view;
     }
 }
