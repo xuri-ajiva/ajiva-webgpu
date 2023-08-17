@@ -8,15 +8,11 @@
 
 //todo move to defines?? is this enough space?
 #define MAX_MESSAGE_CODES 16384
+#define AJ_EVENT_PARAMETERS Ajiva::Core::EventCode code, void *sender, const Ajiva::Core::EventContext &event
+#define AJ_EVENT_PARAMETERS_CALL code, sender, event
 
 #include <functional>
 
-//#define AJ_EVENT_REGISTER(eventSystemToRegister, eventCodeToRegister, listenerToRegister) (eventSystemToRegister).RegisterEvent(eventCodeToRegister, listenerToRegister, [](Ajiva::Core::EventCode eventCode, void *sender, void *listener, const Ajiva::Core::EventContext &context) {
-#define AJ_EVENT_REGISTER(eventSystemToRegister, eventCodeToRegister, listenerToRegisterCast, ...) \
-(eventSystemToRegister).RegisterEvent(eventCodeToRegister, this,                 \
-[](Ajiva::Core::EventCode eventCode, void *sender, void *listener, const Ajiva::Core::EventContext &event) { \
-auto that = static_cast<listenerToRegisterCast *>(listener); \
-__VA_ARGS__ return false; })
 
 namespace Ajiva::Core {
     enum EventCode : u16 {
@@ -33,6 +29,7 @@ namespace Ajiva::Core {
 
         MaxInternalEvent = 0xFF,
     };
+
     union EventContext {
         i64 i64_[2];
         u64 u64_[2];
@@ -57,14 +54,14 @@ namespace Ajiva::Core {
                 f64 yOffset;
             } wheel;
             struct {
-                u32 x;
-                u32 y;
+                i32 x;
+                i32 y;
                 i32 button;
                 i32 mods;
             } click;
             struct {
-                u32 x;
-                u32 y;
+                i32 x;
+                i32 y;
             } move;
         } mouse;
         struct {
@@ -74,6 +71,7 @@ namespace Ajiva::Core {
             u32 height;
         } windowRect;
         struct {
+            u64 padding; // align with mouse/windowRect
             u32 width;
             u32 height;
         } framebufferSize;
@@ -87,12 +85,47 @@ namespace Ajiva::Core {
     };
     static_assert(sizeof(EventContext) == 16);
 
+    class IListener {
+    public:
+        virtual ~IListener() = default;
 
-    typedef std::function<bool(EventCode EventCode, void *sender, void *listener,
-                               const EventContext &context)> EventCallback;
-    struct RegisteredEvent {
-        void *listener;
-        EventCallback callback;
+        virtual bool operator()(AJ_EVENT_PARAMETERS) = 0;
+
+        //encorce equality operator
+        bool operator==(const IListener &other) const {
+            return this == &other;
+        }
+    };
+
+    template<typename D, typename R>
+    class Listener : public IListener {
+    public:
+        typedef R (D::*Callback)(AJ_EVENT_PARAMETERS);
+
+        bool operator()(AJ_EVENT_PARAMETERS) override {
+            static_assert(std::is_same_v<R, bool> || std::is_same_v<R, void>,
+                          "Return type must be bool or void.");
+
+            if constexpr (std::is_same_v<R, bool>) {
+                // Handle bool return type
+                return (_instance->*callback)(AJ_EVENT_PARAMETERS_CALL);
+            } else {
+                (_instance->*callback)(AJ_EVENT_PARAMETERS_CALL);
+                return false;
+            }
+        }
+
+        Listener(D *instance, Callback wmFuncPtr) {
+            _instance = instance;
+            callback = wmFuncPtr;
+        }
+
+        ~Listener() override = default;
+
+    private:
+        D *_instance;
+        Callback callback;
+
     };
 
 
@@ -102,16 +135,48 @@ namespace Ajiva::Core {
 
         ~EventSystem();
 
-        bool RegisterEvent(EventCode eventCode, void *listener, const EventCallback &callback);
+        template<typename D>
+        Ref<Listener<D, bool>> Add(EventCode eventCode, D *instance, Listener<D, bool>::Callback callback) {
+            return Add<D, bool>(eventCode, instance, callback);
+        }
 
-        bool UnregisterEvent(EventCode eventCode, void *listener, const EventCallback &callback);
+        template<typename D>
+        Ref<Listener<D, void>> Add(EventCode eventCode, D *instance, Listener<D, void>::Callback callback) {
+            return Add<D, void>(eventCode, instance, callback);
+        }
 
         bool FireEvent(EventCode eventCode, void *sender, const EventContext &context);
 
     private:
-        std::vector<RegisteredEvent> registered[MAX_MESSAGE_CODES];
+        std::vector<std::weak_ptr<IListener>> registered[MAX_MESSAGE_CODES];
 
+
+        template<typename D, typename R>
+        bool Remove(EventCode eventCode, Listener<D, R> *listener) {
+            for (auto it = registered[eventCode].begin(); it != registered[eventCode].end(); ++it) {
+                if (it->expired()) {
+                    registered[eventCode].erase(it);
+                    return true;
+                } else {
+                    if (it->lock().get() == listener) {
+                        registered[eventCode].erase(it);
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        template<typename D, typename R>
+        Ref<Listener<D, R>> Add(EventCode eventCode, D *instance, Listener<D, R>::Callback callback) {
+            std::shared_ptr<Listener<D, R>> listener(new Listener<D, R>(instance, callback),
+                                                     [this, eventCode](Listener<D, R> *pi) {
+                                                         PLOG_DEBUG << "Listener " << pi << " unregistered!";
+                                                         this->Remove<D, R>(eventCode, pi);
+                                                         delete pi;
+                                                     });
+            registered[eventCode].push_back(listener);
+            return listener;
+        }
     };
-
-
 }

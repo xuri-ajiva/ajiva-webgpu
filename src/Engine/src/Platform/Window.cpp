@@ -68,13 +68,13 @@ namespace Ajiva::Platform {
             f64 x, y;
             glfwGetCursorPos(pWindow, &x, &y);
             if (ev->FireEvent(eventCore, windowClass,
-                              {.mouse = {.click = {.x = static_cast<u32>(x), .y = static_cast<u32>(y), .button = button, .mods = mods}}}))
+                              {.mouse = {.click = {.x = static_cast<i32>(x), .y = static_cast<i32>(y), .button = button, .mods = mods}}}))
                 return;
         });
         glfwSetCursorPosCallback(window, [](GLFWwindow *pWindow, f64 x, f64 y) {
             GLFW_USER_PTR_CHECK()
-            if (ev->FireEvent(Core::EventCode::MouseMove, windowClass,
-                              {.mouse = {.move = {.x = static_cast<u32>(x), .y = static_cast<u32>(y)}}}))
+            Core::EventContext context = {.mouse = {.move = {.x = static_cast<i32>(x), .y = static_cast<i32>(y)}}};
+            if (ev->FireEvent(Core::EventCode::MouseMove, windowClass, context))
                 return;
         });
         glfwSetScrollCallback(window, [](GLFWwindow *pWindow, f64 xOffset, f64 yOffset) {
