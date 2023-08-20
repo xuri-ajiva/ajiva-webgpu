@@ -50,6 +50,7 @@ namespace Ajiva::Renderer {
         }
 
         glm::mat4 viewMatrix;
+        glm::vec3 position;
 
         void updateViewMatrix();
 

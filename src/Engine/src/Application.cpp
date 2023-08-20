@@ -60,12 +60,15 @@ namespace Ajiva {
 
         lightningUniform = {
                 .lights = {
-                        {.position = {0.5f, 0.5f, 1.0f, 0}, .color = {1.0f, 1.0f, 1.0f, 4.0f}},
-                        {.position = {1.0f, 1.0f, 1.0f, 0}, .color = {1.0f, 0.0f, 0.0f, 6.0f}},
-                        {.position = {1.0f, 0.0f, 1.0f, 0}, .color = {0.0f, 1.0f, 0.0f, 6.0f}},
-                        {.position = {0.0f, 1.0f, 1.0f, 0}, .color = {0.0f, 0.0f, 1.0f, 6.0f}},
+                        {.position = {0.5f, 0.5f, 1.0f, 0}, .color = {1.0f, 1.0f, 1.0f, 1.0f}},
+                        {.position = {1.0f, 1.0f, 1.0f, 0}, .color = {1.0f, 0.0f, 0.0f, 1.0f}},
+                        {.position = {1.0f, 0.0f, 1.0f, 0}, .color = {0.0f, 1.0f, 0.0f, 1.0f}},
+                        {.position = {0.0f, 1.0f, 1.0f, 0}, .color = {0.0f, 0.0f, 1.0f, 1.0f}},
                 },
                 .ambient = {0.5f, 0.5f, 0.5f, 1.0f},
+                .hardness = 32.0f,
+                .kd = 0.8f,
+                .ks = 0.2f,
         };
 
 

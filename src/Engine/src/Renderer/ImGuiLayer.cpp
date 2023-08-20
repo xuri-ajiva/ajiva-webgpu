@@ -67,6 +67,9 @@ namespace Ajiva::Renderer {
                                          (options_menu ? 0 : ImGuiColorEditFlags_NoOptions);
         ImGui::SeparatorText("Inline color editor");
         ImGui::ColorEdit4("Ambient", (float *) &pUniform->ambient, misc_flags);
+        ImGui::DragFloat("Hardness", &pUniform->hardness, 0.05, 0.0001f, 128.0f, "%.3f", ImGuiSliderFlags_Logarithmic);
+        ImGui::SliderFloat("Kd", &pUniform->kd, 0.0f, 2.0f);
+        ImGui::SliderFloat("Ks", &pUniform->ks, 0.0f, 2.0f);
         for (int i = 0; i < glm::countof(pUniform->lights); ++i) {
             ImGui::SeparatorText(("Light " + std::to_string(i)).c_str());
             ImGui::ColorEdit3(("Color##C" + std::to_string(i)).c_str(),

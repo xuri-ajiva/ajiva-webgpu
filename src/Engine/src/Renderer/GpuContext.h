@@ -44,8 +44,8 @@ namespace Ajiva::Renderer {
         glm::mat4x4 viewMatrix;
         glm::mat4x4 modelMatrix;
         glm::vec4 color;
+        glm::vec3 worldPos;
         float time;
-        float _pad[3];
     };
     static_assert(sizeof(UniformData) % 16 == 0);
 
@@ -58,6 +58,10 @@ namespace Ajiva::Renderer {
     struct LightningUniform {
         Light lights[4];
         glm::vec4 ambient;
+        float hardness;
+        float kd;
+        float ks;
+        float padding;
     };
     static_assert(sizeof(LightningUniform) % 16 == 0);
 
