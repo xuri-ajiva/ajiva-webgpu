@@ -13,8 +13,8 @@
 namespace Ajiva::Renderer {
     class ImGuiLayer : public Ajiva::Core::Layer {
     public:
-        ImGuiLayer(Ref<Ajiva::Platform::Window> window, Ref<Ajiva::Renderer::GpuContext> context,
-                   Ref<Ajiva::Core::EventSystem> eventSystem);
+        ImGuiLayer(Ref<Platform::Window> window, Ref<GpuContext> context, Ref<Core::EventSystem> eventSystem,
+                   LightningUniform *pUniform);
 
         void Attached() override;
 
@@ -34,6 +34,7 @@ namespace Ajiva::Renderer {
         std::vector<Ref<Ajiva::Core::IListener>> events;
         bool OnMouse(AJ_EVENT_PARAMETERS);
 
+        LightningUniform *pUniform;
         bool show_demo_window = true;
         bool app_log_open = true;
     };

@@ -49,6 +49,18 @@ namespace Ajiva::Renderer {
     };
     static_assert(sizeof(UniformData) % 16 == 0);
 
+    struct Light {
+        glm::vec4 position;
+        glm::vec4 color;
+    };
+    static_assert(sizeof(Light) == 32);
+
+    struct LightningUniform {
+        Light lights[4];
+        glm::vec4 ambient;
+    };
+    static_assert(sizeof(LightningUniform) % 16 == 0);
+
     class GpuContext {
         Ref<wgpu::ErrorCallback> callback;
         Ref<wgpu::Surface> surface = nullptr;

@@ -35,7 +35,7 @@ namespace Ajiva {
         window->Run();
 
         //ImGui first to block camera input
-        Renderer::ImGuiLayer imGuiLayer(window, context, eventSystem);
+        Renderer::ImGuiLayer imGuiLayer(window, context, eventSystem, &lightningUniform);
         camera = CreateRef<Renderer::Camera>(eventSystem);
         camera->Init();
 
@@ -56,6 +56,16 @@ namespace Ajiva {
         uniforms = {
                 .color = {1.0f, 0.5f, 0.0f, 1.0f},
                 .time = 1.0f,
+        };
+
+        lightningUniform = {
+                .lights = {
+                        {.position = {0.5f, 0.5f, 1.0f, 0}, .color = {1.0f, 1.0f, 1.0f, 4.0f}},
+                        {.position = {1.0f, 1.0f, 1.0f, 0}, .color = {1.0f, 0.0f, 0.0f, 6.0f}},
+                        {.position = {1.0f, 0.0f, 1.0f, 0}, .color = {0.0f, 1.0f, 0.0f, 6.0f}},
+                        {.position = {0.0f, 1.0f, 1.0f, 0}, .color = {0.0f, 0.0f, 1.0f, 6.0f}},
+                },
+                .ambient = {0.5f, 0.5f, 0.5f, 1.0f},
         };
 
 
@@ -102,6 +112,11 @@ namespace Ajiva {
             bindGroupBuilder.PushBuffer(uniformBuffer);
 
             const int mipLevelCount = 8;
+            auto sampler = context->CreateSampler(wgpu::AddressMode::Repeat, wgpu::FilterMode::Linear,
+                                                  wgpu::CompareFunction::Undefined, 0.0f, 1.0f * mipLevelCount,
+                                                  "Sampler");
+            bindGroupBuilder.PushSampler(sampler);
+
             texture = loader->LoadTexture("fourareen2K_albedo.jpg", *context, mipLevelCount);
             if (!texture) {
                 AJ_FAIL("Could not load texture!");
@@ -109,14 +124,17 @@ namespace Ajiva {
             }
             bindGroupBuilder.PushTexture(texture);
 
-            auto sampler = context->CreateSampler(wgpu::AddressMode::Repeat, wgpu::FilterMode::Linear,
-                                                  wgpu::CompareFunction::Undefined, 0.0f, 1.0f * mipLevelCount,
-                                                  "Sampler");
-            bindGroupBuilder.PushSampler(sampler);
+            lightningUniformBuffer = context->CreateFilledBuffer(&uniforms, sizeof(Ajiva::Renderer::LightningUniform),
+                                                                 wgpu::BufferUsage::CopyDst |
+                                                                 wgpu::BufferUsage::Uniform,
+                                                                 "Lightning Uniform Buffer");
+            bindGroupBuilder.PushBuffer(lightningUniformBuffer);
+
 
             auto bindGroupLayout = bindGroupBuilder.BuildBindGroupLayout();
             renderPipeline = context->CreateRenderPipeline(shaderModule, std::vector{*bindGroupLayout}, vertexAttribs,
                                                            depthTexture->textureFormat);
+
         }
 
         bool success = loader->LoadGeometryFromObj("fourareen.obj", vertexData, indexData);
@@ -200,6 +218,8 @@ namespace Ajiva {
                                glm::scale(mat4x4(1.0), vec3(0.8f));*/
         uniforms.viewMatrix = camera->viewMatrix;
         uniformBuffer->UpdateBufferData(&uniforms, sizeof(Ajiva::Renderer::UniformData));
+
+        lightningUniformBuffer->UpdateBufferData(&lightningUniform, sizeof(Ajiva::Renderer::LightningUniform));
 
         for (const auto &layer: layers) {
             if (!layer->IsEnabled()) continue;

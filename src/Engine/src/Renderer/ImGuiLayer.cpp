@@ -10,10 +10,10 @@
 #include "imgui_impl_wgpu.h"
 
 namespace Ajiva::Renderer {
-    ImGuiLayer::ImGuiLayer(Ref<Ajiva::Platform::Window> window, Ref<Ajiva::Renderer::GpuContext> context,
-                           Ref<Ajiva::Core::EventSystem> eventSystem)
+    ImGuiLayer::ImGuiLayer(Ref<Platform::Window> window, Ref<GpuContext> context, Ref<Core::EventSystem> eventSystem,
+                           LightningUniform *pUniform)
             : Layer("ImGuiLayer"), window(std::move(window)), context(std::move(context)),
-              eventSystem(std::move(eventSystem)) {
+              eventSystem(std::move(eventSystem)), pUniform(pUniform) {
         //catch events as soon as possible
         this->events.push_back(this->eventSystem->Add(Core::MouseButtonDown, this, &ImGuiLayer::OnMouse));
         this->events.push_back(this->eventSystem->Add(Core::MouseButtonUp, this, &ImGuiLayer::OnMouse));
@@ -50,6 +50,34 @@ namespace Ajiva::Renderer {
     void ImGuiLayer::Render(Core::FrameInfo frameInfo) {
         ImGui::ShowDemoWindow(&show_demo_window);
         Core::ShowAppLog(&app_log_open);
+
+        ImGui::Begin("Lightning");
+        static bool alpha_preview = true;
+        static bool alpha_half_preview = false;
+        static bool drag_and_drop = true;
+        static bool options_menu = true;
+        ImGui::SeparatorText("Options");
+        ImGui::Checkbox("With Alpha Preview", &alpha_preview);
+        ImGui::Checkbox("With Half Alpha Preview", &alpha_half_preview);
+        ImGui::Checkbox("With Drag and Drop", &drag_and_drop);
+        ImGui::Checkbox("With Options Menu", &options_menu);
+        ImGuiColorEditFlags misc_flags = (drag_and_drop ? 0 : ImGuiColorEditFlags_NoDragDrop) |
+                                         (alpha_half_preview ? ImGuiColorEditFlags_AlphaPreviewHalf
+                                                             : (alpha_preview ? ImGuiColorEditFlags_AlphaPreview : 0)) |
+                                         (options_menu ? 0 : ImGuiColorEditFlags_NoOptions);
+        ImGui::SeparatorText("Inline color editor");
+        ImGui::ColorEdit4("Ambient", (float *) &pUniform->ambient, misc_flags);
+        for (int i = 0; i < glm::countof(pUniform->lights); ++i) {
+            ImGui::SeparatorText(("Light " + std::to_string(i)).c_str());
+            ImGui::ColorEdit3(("Color##C" + std::to_string(i)).c_str(),
+                              (float *) &pUniform->lights[i].color, misc_flags);
+            ImGui::DragFloat(("Intensity##C" + std::to_string(i)).c_str(),
+                             (float *) &pUniform->lights[i].color.w, .05f, 0.0f, 10.0f);
+            ImGui::DragFloat3(("Position##C" + std::to_string(i)).c_str(),
+                              (float *) &pUniform->lights[i].position, .05f, -10.0f, 10.0f);
+        }
+
+        ImGui::End();
     }
 
     void ImGuiLayer::AfterRender(wgpu::RenderPassEncoder renderPass) {
