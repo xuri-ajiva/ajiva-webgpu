@@ -11,7 +11,7 @@
 #include "Core/EventSystem.h"
 #include "Renderer/Camera.h"
 #include "Core/Layer.h"
-
+#include "Renderer/BindGroupBuilder.h"
 
 namespace Ajiva {
     struct ApplicationConfig {
@@ -52,7 +52,7 @@ namespace Ajiva {
         Ref<Ajiva::Renderer::Buffer> vertexBuffer = nullptr;
         //Ref<Ajiva::Renderer::Buffer> indexBuffer;
         Ref<wgpu::RenderPipeline> renderPipeline = nullptr;
-        Ref<wgpu::BindGroup> bindGroup = nullptr;
+        Renderer::BindGroupBuilder bindGroupBuilder;
         std::vector<Ajiva::Renderer::VertexData> vertexData;
         std::vector<u16> indexData;
         Ref<Renderer::Texture> texture;

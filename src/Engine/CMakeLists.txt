@@ -37,6 +37,8 @@ add_library(Engine STATIC
         src/Renderer/ImGuiLayer.cpp
         src/Renderer/ImGuiLayer.h
         src/Core/Layer.cpp
+        src/Renderer/BindGroupBuilder.cpp
+        src/Renderer/BindGroupBuilder.h
 )
 
 target_compile_definitions(Engine PRIVATE AJ_EXPORT)

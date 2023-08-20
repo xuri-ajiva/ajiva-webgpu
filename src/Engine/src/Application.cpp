@@ -39,6 +39,8 @@ namespace Ajiva {
         camera = CreateRef<Renderer::Camera>(eventSystem);
         camera->Init();
 
+        bindGroupBuilder = Renderer::BindGroupBuilder(context, loader);
+
         //layers
         layers.push_back(CreateRef<Renderer::ImGuiLayer>(imGuiLayer));
 
@@ -93,56 +95,36 @@ namespace Ajiva {
                                                                            static_cast<uint32_t>(window->GetHeight()),
                                                                            1});*/
 
+        {
+            uniformBuffer = context->CreateFilledBuffer(&uniforms, sizeof(Ajiva::Renderer::UniformData),
+                                                        wgpu::BufferUsage::CopyDst | wgpu::BufferUsage::Uniform,
+                                                        "Uniform Buffer");
+            bindGroupBuilder.PushBuffer(uniformBuffer);
 
+            const int mipLevelCount = 8;
+            texture = loader->LoadTexture("fourareen2K_albedo.jpg", *context, mipLevelCount);
+            if (!texture) {
+                AJ_FAIL("Could not load texture!");
+                return false;
+            }
+            bindGroupBuilder.PushTexture(texture);
 
-        std::vector<wgpu::BindGroupLayoutEntry> bindingLayoutEntries(3, wgpu::Default);
-        bindingLayoutEntries[0] = WGPUBindGroupLayoutEntry{
-                .binding = 0,
-                .visibility = wgpu::ShaderStage::Vertex | wgpu::ShaderStage::Fragment,
-                .buffer = WGPUBufferBindingLayout{
-                        .type = wgpu::BufferBindingType::Uniform,
-                        .minBindingSize = sizeof(Ajiva::Renderer::UniformData),
-                },
-        };
-        bindingLayoutEntries[1] = WGPUBindGroupLayoutEntry{
-                .binding = 1,
-                .visibility = wgpu::ShaderStage::Fragment,
-                .texture = WGPUTextureBindingLayout{
-                        .sampleType = wgpu::TextureSampleType::Float,
-                        .viewDimension = wgpu::TextureViewDimension::_2D,
-                },
-        };
-        bindingLayoutEntries[2] = WGPUBindGroupLayoutEntry{
-                .binding = 2,
-                .visibility = wgpu::ShaderStage::Fragment,
-                .sampler = WGPUSamplerBindingLayout{
-                        .type = wgpu::SamplerBindingType::Filtering,
-                },
-        };
+            auto sampler = context->CreateSampler(wgpu::AddressMode::Repeat, wgpu::FilterMode::Linear,
+                                                  wgpu::CompareFunction::Undefined, 0.0f, 1.0f * mipLevelCount,
+                                                  "Sampler");
+            bindGroupBuilder.PushSampler(sampler);
 
-        auto bindGroupLayout = context->CreateBindGroupLayout(bindingLayoutEntries);
-        renderPipeline = context->CreateRenderPipeline(shaderModule, std::vector{*bindGroupLayout}, vertexAttribs,
-                                                       depthTexture->textureFormat);
+            auto bindGroupLayout = bindGroupBuilder.BuildBindGroupLayout();
+            renderPipeline = context->CreateRenderPipeline(shaderModule, std::vector{*bindGroupLayout}, vertexAttribs,
+                                                           depthTexture->textureFormat);
+        }
 
-        /*bool success = loader->LoadGeometryFromSimpleTxt( "pyramid.txt", vertexData, indexData);
-        if (!success) {
-            PLOG_ERROR << "Could not load geometry!";
-            return 1;
-        }*/
         bool success = loader->LoadGeometryFromObj("fourareen.obj", vertexData, indexData);
         if (!success) {
             std::cerr << "Could not load geometry!" << std::endl;
             return false;
         }
 
-
-        const int mipLevelCount = 8;
-
-        texture = loader->LoadTexture("fourareen2K_albedo.jpg", *context);
-        if (!texture) {
-            AJ_FAIL("Could not load texture!");
-            return false;
-        }
 
         {
             //camera stuff
@@ -173,30 +155,8 @@ namespace Ajiva {
         /*auto indexBuffer = context->CreateFilledBuffer(indexData.data(), indexData.size() * sizeof(uint16_t),
                                                       wgpu::BufferUsage::CopyDst | wgpu::BufferUsage::Index,
                                                       "Index Buffer");*/
-        uniformBuffer = context->CreateFilledBuffer(&uniforms, sizeof(Ajiva::Renderer::UniformData),
-                                                    wgpu::BufferUsage::CopyDst | wgpu::BufferUsage::Uniform,
-                                                    "Uniform Buffer");
 
-        auto sampler = context->CreateSampler(wgpu::AddressMode::Repeat, wgpu::FilterMode::Linear,
-                                              wgpu::CompareFunction::Undefined, 0.0f, 1.0f * mipLevelCount, "Sampler");
 
-        std::vector<wgpu::BindGroupEntry> bindings(3);
-        bindings[0] = WGPUBindGroupEntry{
-                .binding = 0,
-                .buffer = uniformBuffer->buffer,
-                .offset = 0,
-                .size = sizeof(Ajiva::Renderer::UniformData),
-        };
-        bindings[1] = WGPUBindGroupEntry{
-                .binding = 1,
-                .textureView = texture->view
-        };
-        bindings[2] = WGPUBindGroupEntry{
-                .binding = 2,
-                .sampler = *sampler
-        };
-
-        bindGroup = context->CreateBindGroup(bindGroupLayout, uniformBuffer, bindings);
 
         //AJ_INFO("Startup Time: %s", clock.Total());
         PLOG_DEBUG << std::chrono::duration_cast<std::chrono::milliseconds>(clock.Total());
@@ -255,7 +215,7 @@ namespace Ajiva {
         renderPass.setVertexBuffer(0, vertexBuffer->buffer, 0, vertexData.size() * sizeof(Ajiva::Renderer::VertexData));
         /* renderPass.setIndexBuffer(indexBuffer->buffer, wgpu::IndexFormat::Uint16, 0,
                                    indexData.size() * sizeof(uint16_t));*/
-        renderPass.setBindGroup(0, *bindGroup, 0, nullptr);
+        renderPass.setBindGroup(0, *bindGroupBuilder.bindGroup, 0, nullptr);
         //renderPass.drawIndexed(indexData.size(), 1, 0, 0, 0);
         renderPass.draw(vertexData.size(), 1, 0, 0);
 
