@@ -144,10 +144,12 @@ namespace Ajiva::Resource {
         }
     }
 
-    Ref<Renderer::Texture> Loader::LoadTexture(const std::filesystem::path &resourcePath, const Renderer::GpuContext &context,
-                                               uint32_t mipLevelCount) {
+    Ref<Renderer::Texture>
+    Loader::LoadTexture(const std::filesystem::path &resourcePath, const Renderer::GpuContext &context,
+                        uint32_t mipLevelCount) {
         int width, height, channels, requested_channels = STBI_rgb_alpha;
-        stbi_uc *pixels = stbi_load((resourceDirectory / resourcePath).string().c_str(), &width, &height, &channels, requested_channels);
+        stbi_uc *pixels = stbi_load((resourceDirectory / resourcePath).string().c_str(), &width, &height, &channels,
+                                    requested_channels);
 
         if (!pixels) {
             PLOG_ERROR << "Failed to load texture: " << resourcePath;
@@ -157,7 +159,8 @@ namespace Ajiva::Resource {
 
         uint32_t maxMipLevelCount = bit_width(std::max(width, height));
         if (mipLevelCount > maxMipLevelCount) {
-            PLOG_WARNING << "MipLevelCount is to high for texture: " << resourcePath << " setting to max: " << maxMipLevelCount;
+            PLOG_WARNING << "MipLevelCount is to high for texture: " << resourcePath << " setting to max: "
+                         << maxMipLevelCount;
             mipLevelCount = maxMipLevelCount;
         }
         if (!mipLevelCount) {
@@ -170,7 +173,8 @@ namespace Ajiva::Resource {
                                              static_cast<const WGPUTextureUsage>(TextureUsage::TextureBinding |
                                                                                  TextureUsage::CopyDst),
                                              TextureAspect::All,
-                                             mipLevelCount, reinterpret_cast<const char *>(resourcePath.filename().c_str()));
+                                             mipLevelCount,
+                                             reinterpret_cast<const char *>(resourcePath.filename().c_str()));
 
         if (channels != requested_channels) {
             PLOG_DEBUG << "Texture: " << resourcePath << " was converted to 4 channels!";
@@ -180,5 +184,52 @@ namespace Ajiva::Resource {
         stbi_image_free(pixels);
         return texture;
     }
+
+    Ref<Renderer::Texture>
+    Loader::LoadTextureAsync(const std::filesystem::path &resourcePath, const Renderer::GpuContext &context,
+                             uint32_t mipLevelCount) {
+        auto path = (resourceDirectory / resourcePath).string();
+        int width, height, channels;
+        stbi_info(path.c_str(), &width, &height, &channels);
+
+        uint32_t maxMipLevelCount = bit_width(std::max(width, height));
+        if (mipLevelCount > maxMipLevelCount) {
+            PLOG_WARNING << "MipLevelCount is to high for texture: " << resourcePath << " setting to max: "
+                         << maxMipLevelCount;
+            mipLevelCount = maxMipLevelCount;
+        }
+        if (!mipLevelCount) {
+            mipLevelCount = maxMipLevelCount;
+        }
+
+        using namespace wgpu;
+        auto texture = context.CreateTexture(TextureFormat::RGBA8Unorm,
+                                             {static_cast<uint32_t>(width), static_cast<uint32_t>(height), 1},
+                                             static_cast<const WGPUTextureUsage>(TextureUsage::TextureBinding |
+                                                                                 TextureUsage::CopyDst),
+                                             TextureAspect::All,
+                                             mipLevelCount,
+                                             reinterpret_cast<const char *>(resourcePath.filename().c_str()));
+
+        threadPool->QueueWork([texture, path, mipLevelCount]() {
+            int width, height, channels, requested_channels = STBI_rgb_alpha;
+            stbi_uc *pixels = stbi_load(path.c_str(), &width, &height, &channels,
+                                        requested_channels);
+            if (!pixels) {
+                PLOG_ERROR << "Failed to load texture: " << path;
+                PLOG_WARNING << "STBI Error: " << stbi_failure_reason();
+                return;
+            }
+
+            if (channels != requested_channels) {
+                PLOG_DEBUG << "Texture: " << path << " was converted to 4 channels!";
+            }
+
+            texture->WriteTextureMips(pixels, width * height * requested_channels, mipLevelCount);
+            stbi_image_free(pixels);
+        });
+        return texture;
+    }
+
 } // Ajiva
 // Resource

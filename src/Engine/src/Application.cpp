@@ -21,12 +21,16 @@ namespace Ajiva {
     bool Application::Init() {
         Core::SetupLogger();
         PLOG_INFO << "Hello, World!";
+
+        threadPool = CreateRef<Core::ThreadPool<>>(false);
+        threadPool->Start();
+
         eventSystem = CreateRef<Core::EventSystem>();
         //events.push_back(eventSystem->AddEventListener<Core::FramebufferResize>(AJ_EVENT_CALLBACK_VOID(OnResize)));
         events.push_back(eventSystem->Add(Core::FramebufferResize, this, &Application::OnResize));
 
         context = CreateRef<Renderer::GpuContext>();
-        loader = CreateRef<Resource::Loader>(config.ResourceDirectory);
+        loader = CreateRef<Resource::Loader>(config.ResourceDirectory, threadPool);
         window = CreateRef<Platform::Window>(config.WindowConfig, eventSystem);
 
         clock.Start();
@@ -120,14 +124,14 @@ namespace Ajiva {
                                                   "Sampler");
             bindGroupBuilder.PushSampler(sampler);
 
-            auto texture = loader->LoadTexture("cobblestone_floor_08_diff_2k.jpg", *context, mipLevelCount);
+            auto texture = loader->LoadTextureAsync("cobblestone_floor_08_diff_2k.jpg", *context, mipLevelCount);
             if (!texture) {
                 AJ_FAIL("Could not load texture!");
                 return false;
             }
             bindGroupBuilder.PushTexture(texture);
 
-            texture = loader->LoadTexture("cobblestone_floor_08_nor_gl_2k.png", *context, mipLevelCount);
+            texture = loader->LoadTextureAsync("cobblestone_floor_08_nor_gl_2k.png", *context, mipLevelCount);
             if (!texture) {
                 AJ_FAIL("Could not load texture!");
                 return false;
@@ -242,12 +246,12 @@ namespace Ajiva {
         wgpu::RenderPassEncoder renderPass = context->CreateRenderPassEncoder(encoder, nextTexture, depthTexture->view,
                                                                               {0.4, 0.4, 0.4, 1.0});
         renderPass.setPipeline(*renderPipeline);
-        renderPass.setVertexBuffer(0, vertexBuffer->buffer, 0, vertexData.size() * sizeof(Ajiva::Renderer::VertexData));
+        renderPass.setVertexBuffer(0, vertexBuffer->buffer, 0, vertexBuffer->size);
         /* renderPass.setIndexBuffer(indexBuffer->buffer, wgpu::IndexFormat::Uint16, 0,
                                    indexData.size() * sizeof(uint16_t));*/
         renderPass.setBindGroup(0, *bindGroupBuilder.bindGroup, 0, nullptr);
         //renderPass.drawIndexed(indexData.size(), 1, 0, 0, 0);
-        renderPass.draw(vertexData.size(), 1, 0, 0);
+        renderPass.draw(vertexBuffer->size / sizeof(Ajiva::Renderer::VertexData), 1, 0, 0);
 
         for (const auto &layer: layers) {
             if (!layer->IsEnabled()) continue;

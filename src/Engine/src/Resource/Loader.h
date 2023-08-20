@@ -5,15 +5,18 @@
 
 #include "defines.h"
 #include <filesystem>
+#include <utility>
 #include "Renderer/GpuContext.h"
 #include "stb_image.h"
 #include "tiny_obj_loader.h"
+#include "Core/ThreadPool.h"
 
 namespace Ajiva::Resource {
     class AJ_API Loader {
     public:
         Loader() = default;
-        explicit Loader(std::filesystem::path resourceDirectory) : resourceDirectory(std::move(resourceDirectory)) {}
+        explicit Loader(std::filesystem::path resourceDirectory, Ref<Core::IThreadPool> threadPool)
+        : resourceDirectory(std::move(resourceDirectory)), threadPool(std::move(threadPool)) {}
 
         std::string LoadFile(const std::filesystem::path &path, bool throwOnFail = true);
 
@@ -24,11 +27,14 @@ namespace Ajiva::Resource {
         bool LoadGeometryFromObj(const std::filesystem::path &resourcePath, std::vector<Renderer::VertexData> &pointData,
                                  std::vector<uint16_t> &indexData);
 
-
         Ref<Renderer::Texture>
         LoadTexture(const std::filesystem::path &resourcePath, const Renderer::GpuContext &context, uint32_t mipLevelCount = 0);
 
+        Ref<Renderer::Texture>
+        LoadTextureAsync(const std::filesystem::path &resourcePath, const Renderer::GpuContext &context, uint32_t mipLevelCount = 0);
+
     private:
         std::filesystem::path resourceDirectory;
+        Ref<Core::IThreadPool> threadPool;
     };
 } // Ajiva

@@ -12,6 +12,7 @@
 #include "Renderer/Camera.h"
 #include "Core/Layer.h"
 #include "Renderer/BindGroupBuilder.h"
+#include "Core/ThreadPool.h"
 
 namespace Ajiva {
     struct ApplicationConfig {
@@ -61,6 +62,8 @@ namespace Ajiva {
 
         std::vector<Ref<Ajiva::Core::Layer>> layers;
         std::vector<Ref<Ajiva::Core::IListener>> events;
+
+        Ref<Core::ThreadPool<>> threadPool;
     private:
         bool SetupPipeline();
 
