@@ -39,6 +39,8 @@ add_library(Engine STATIC
         src/Core/Layer.cpp
         src/Renderer/BindGroupBuilder.cpp
         src/Renderer/BindGroupBuilder.h
+        src/Core/ThreadPool.cpp
+        src/Core/ThreadPool.h
 )
 
 target_compile_definitions(Engine PRIVATE AJ_EXPORT)
