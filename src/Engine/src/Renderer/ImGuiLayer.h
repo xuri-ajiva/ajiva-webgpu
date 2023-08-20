@@ -32,11 +32,15 @@ namespace Ajiva::Renderer {
         Ref<Ajiva::Core::EventSystem> eventSystem;
 
         std::vector<Ref<Ajiva::Core::IListener>> events;
+
         bool OnMouse(AJ_EVENT_PARAMETERS);
 
         LightningUniform *pUniform;
         bool show_demo_window = true;
+        bool show_lightning_window = true;
         bool app_log_open = true;
+
+        void ShowLightningWindow();
     };
 
 }

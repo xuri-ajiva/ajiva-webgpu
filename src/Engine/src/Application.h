@@ -57,7 +57,6 @@ namespace Ajiva {
         Renderer::BindGroupBuilder bindGroupBuilder;
         std::vector<Ajiva::Renderer::VertexData> vertexData;
         std::vector<u16> indexData;
-        Ref<Renderer::Texture> texture;
         Ref<Renderer::Camera> camera;
 
         std::vector<Ref<Ajiva::Core::Layer>> layers;

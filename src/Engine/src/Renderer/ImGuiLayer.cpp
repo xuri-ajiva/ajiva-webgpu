@@ -48,10 +48,17 @@ namespace Ajiva::Renderer {
     }
 
     void ImGuiLayer::Render(Core::FrameInfo frameInfo) {
-        ImGui::ShowDemoWindow(&show_demo_window);
-        Core::ShowAppLog(&app_log_open);
+        if (show_demo_window)
+            ImGui::ShowDemoWindow(&show_demo_window);
+        if (app_log_open)
+            Core::ShowAppLog(&app_log_open);
 
-        ImGui::Begin("Lightning");
+        if (show_lightning_window)
+            ShowLightningWindow();
+    }
+
+    void ImGuiLayer::ShowLightningWindow() {
+        ImGui::Begin("Lightning", &show_lightning_window);
         static bool alpha_preview = true;
         static bool alpha_half_preview = false;
         static bool drag_and_drop = true;

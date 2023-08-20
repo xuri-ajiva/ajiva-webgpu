@@ -40,7 +40,8 @@ struct VertexOutput {
 @group(0) @binding(0) var<uniform> u: UniformData;
 @group(0) @binding(1) var textureSampler: sampler;
 @group(0) @binding(2) var gradientTexture: texture_2d<f32>;
-@group(0) @binding(3) var<uniform> l: LightningUniform;
+@group(0) @binding(3) var normalTexture: texture_2d<f32>;
+@group(0) @binding(4) var<uniform> l: LightningUniform;
 
 const pi = 3.14159265359;
 
@@ -59,7 +60,9 @@ fn vs_main(in: VertexInput) -> VertexOutput {
 
 @fragment
 fn fs_main(in: VertexOutput) -> @location(0) vec4f {
-	let N = normalize(in.normal);
+	//let N = normalize(in.normal);
+	let encodedN = textureSample(normalTexture, textureSampler, in.uv).rgb;
+    let N = normalize(encodedN - 0.5);
 	let V = normalize(in.viewDirection);
 	var diffuse = u.color.rgb * l.ambient.rgb;
 	var specular = vec3<f32>(0.0);

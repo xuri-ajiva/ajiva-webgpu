@@ -120,7 +120,14 @@ namespace Ajiva {
                                                   "Sampler");
             bindGroupBuilder.PushSampler(sampler);
 
-            texture = loader->LoadTexture("fourareen2K_albedo.jpg", *context, mipLevelCount);
+            auto texture = loader->LoadTexture("cobblestone_floor_08_diff_2k.jpg", *context, mipLevelCount);
+            if (!texture) {
+                AJ_FAIL("Could not load texture!");
+                return false;
+            }
+            bindGroupBuilder.PushTexture(texture);
+
+            texture = loader->LoadTexture("cobblestone_floor_08_nor_gl_2k.png", *context, mipLevelCount);
             if (!texture) {
                 AJ_FAIL("Could not load texture!");
                 return false;
@@ -140,7 +147,7 @@ namespace Ajiva {
 
         }
 
-        bool success = loader->LoadGeometryFromObj("fourareen.obj", vertexData, indexData);
+        bool success = loader->LoadGeometryFromObj("plane.obj", vertexData, indexData);
         if (!success) {
             std::cerr << "Could not load geometry!" << std::endl;
             return false;
@@ -220,8 +227,8 @@ namespace Ajiva {
                                glm::translate(mat4x4(1.0), vec3(0.5, 0.0, 0.0)) *
                                glm::scale(mat4x4(1.0), vec3(0.8f));*/
         uniforms.viewMatrix = camera->viewMatrix;
+        uniforms.worldPos = camera->position;
         uniformBuffer->UpdateBufferData(&uniforms, sizeof(Ajiva::Renderer::UniformData));
-
         lightningUniformBuffer->UpdateBufferData(&lightningUniform, sizeof(Ajiva::Renderer::LightningUniform));
 
         for (const auto &layer: layers) {
