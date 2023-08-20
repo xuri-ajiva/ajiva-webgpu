@@ -317,7 +317,7 @@ namespace Ajiva::Renderer {
     }
 
     Ref<wgpu::BindGroup>
-    GpuContext::CreateBindGroup(const Ref<wgpu::BindGroupLayout> &bindGroupLayout, const Ref<Buffer> &uniformBuffer,
+    GpuContext::CreateBindGroup(const Ref<wgpu::BindGroupLayout> &bindGroupLayout,
                                 std::vector<wgpu::BindGroupEntry> bindings) const {
         PLOG_INFO << "Creating bind group";
         // A bind group contains one or multiple bindings
@@ -340,7 +340,7 @@ namespace Ajiva::Renderer {
         bufferDesc.mappedAtCreation = false;
         auto buffer = device->createBuffer(bufferDesc);
         PLOG_VERBOSE << "Buffer: " << buffer;
-        return CreateRef<Ajiva::Renderer::Buffer>(buffer, queue);
+        return CreateRef<Ajiva::Renderer::Buffer>(buffer, size, bufferDesc.size, queue);
     }
 
     Ref<Ajiva::Renderer::Buffer>

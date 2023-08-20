@@ -132,13 +132,15 @@ namespace Ajiva::Renderer {
         Ref<wgpu::Queue> m_queue;
 
     public:
+        u64 size;
+        u64 alignedSize;
         wgpu::Buffer buffer;
 
-        Buffer(wgpu::Buffer buffer, Ref<wgpu::Queue> queue, bool cleanUp = true);
+        Buffer(wgpu::Buffer buffer, u64 size, u64 alignedSize, Ref<wgpu::Queue> queue, bool cleanUp = true);
 
         ~Buffer();
 
-        void UpdateBufferData(void const *data, uint64_t size);
+        void UpdateBufferData(void const *data, uint64_t updateSize);
     };
 
 } // Ajiva

@@ -110,7 +110,7 @@ namespace Ajiva::Renderer {
         CreateBindGroupLayout(std::vector<wgpu::BindGroupLayoutEntry> entries);
 
         [[nodiscard]] Ref<wgpu::BindGroup>
-        CreateBindGroup(const Ref<wgpu::BindGroupLayout> &bindGroupLayout, const Ref<Buffer> &uniformBuffer,
+        CreateBindGroup(const Ref<wgpu::BindGroupLayout> &bindGroupLayout,
                         std::vector<wgpu::BindGroupEntry> bindings) const;
 
         [[nodiscard]] Ref<Ajiva::Renderer::Buffer>
