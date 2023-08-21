@@ -60,8 +60,9 @@ namespace Ajiva::Resource {
         return true;
     }
 
-    bool Loader::LoadGeometryFromObj(const std::filesystem::path &resourcePath, std::vector<Renderer::VertexData> &pointData,
-                                     std::vector<uint16_t> &indexData) {
+    bool
+    Loader::LoadGeometryFromObj(const std::filesystem::path &resourcePath, std::vector<Renderer::VertexData> &pointData,
+                                std::vector<uint16_t> &indexData) {
         tinyobj::attrib_t attrib;
         std::vector<tinyobj::shape_t> shapes;
         std::vector<tinyobj::material_t> materials;
@@ -70,7 +71,8 @@ namespace Ajiva::Resource {
         std::string err;
 
         // Call the core loading procedure of TinyOBJLoader
-        bool ret = tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, (resourceDirectory / resourcePath).string().c_str());
+        bool ret = tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err,
+                                    (resourceDirectory / resourcePath).string().c_str());
 
         // Check errors
         if (!warn.empty()) {
@@ -188,45 +190,20 @@ namespace Ajiva::Resource {
     Ref<Renderer::Texture>
     Loader::LoadTextureAsync(const std::filesystem::path &resourcePath, const Renderer::GpuContext &context,
                              uint32_t mipLevelCount) {
-        auto path = (resourceDirectory / resourcePath).string();
-        int width, height, channels;
-        stbi_info(path.c_str(), &width, &height, &channels);
-
-        uint32_t maxMipLevelCount = bit_width(std::max(width, height));
-        if (mipLevelCount > maxMipLevelCount) {
-            PLOG_WARNING << "MipLevelCount is to high for texture: " << resourcePath << " setting to max: "
-                         << maxMipLevelCount;
-            mipLevelCount = maxMipLevelCount;
-        }
-        if (!mipLevelCount) {
-            mipLevelCount = maxMipLevelCount;
-        }
-
         using namespace wgpu;
         auto texture = context.CreateTexture(TextureFormat::RGBA8Unorm,
-                                             {static_cast<uint32_t>(width), static_cast<uint32_t>(height), 1},
+                                             {static_cast<uint32_t>(1), static_cast<uint32_t>(1), 1},
                                              static_cast<const WGPUTextureUsage>(TextureUsage::TextureBinding |
                                                                                  TextureUsage::CopyDst),
                                              TextureAspect::All,
-                                             mipLevelCount,
+                                             1,
                                              reinterpret_cast<const char *>(resourcePath.filename().c_str()));
 
-        threadPool->QueueWork([texture, path, mipLevelCount]() {
-            int width, height, channels, requested_channels = STBI_rgb_alpha;
-            stbi_uc *pixels = stbi_load(path.c_str(), &width, &height, &channels,
-                                        requested_channels);
-            if (!pixels) {
-                PLOG_ERROR << "Failed to load texture: " << path;
-                PLOG_WARNING << "STBI Error: " << stbi_failure_reason();
-                return;
-            }
 
-            if (channels != requested_channels) {
-                PLOG_DEBUG << "Texture: " << path << " was converted to 4 channels!";
-            }
-
-            texture->WriteTextureMips(pixels, width * height * requested_channels, mipLevelCount);
-            stbi_image_free(pixels);
+        threadPool->QueueWork([texture, resourcePath, mipLevelCount, context, this]() {
+            auto realTexture = LoadTexture(resourcePath, context, mipLevelCount);
+            realTexture->SetCleanUp(false);
+            texture->SwapBackingTexture(realTexture);
         });
         return texture;
     }

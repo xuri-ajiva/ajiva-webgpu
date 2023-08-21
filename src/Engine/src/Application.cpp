@@ -145,8 +145,9 @@ namespace Ajiva {
             bindGroupBuilder.PushBuffer(lightningUniformBuffer);
 
 
-            auto bindGroupLayout = bindGroupBuilder.BuildBindGroupLayout();
-            renderPipeline = context->CreateRenderPipeline(shaderModule, std::vector{*bindGroupLayout}, vertexAttribs,
+            bindGroupBuilder.BuildBindGroupLayout();
+            renderPipeline = context->CreateRenderPipeline(shaderModule, std::vector{*bindGroupBuilder.bindGroupLayout},
+                                                           vertexAttribs,
                                                            depthTexture->textureFormat);
 
         }
@@ -209,6 +210,8 @@ namespace Ajiva {
         Core::FrameInfo frameInfo = {clock.Ticks(),
                                      std::chrono::duration_cast<std::chrono::duration<float>>(clock.Delta()).count(),
                                      std::chrono::duration_cast<std::chrono::duration<float>>(clock.Total()).count()};
+
+        bindGroupBuilder.UpdateBindings();
 
         ///Before Render
 
