@@ -2,8 +2,6 @@
 struct UniformData {
     projectionMatrix: mat4x4f,
     viewMatrix: mat4x4f,
-    modelMatrix: mat4x4f,
-    color: vec4f,
     worldPos: vec3f,
     time: f32,
 };
@@ -19,7 +17,13 @@ struct LightningUniform{
     kd: f32,
     ks: f32,
 };
-
+struct InstanceInput {
+    @location(10) model_matrix_0: vec4<f32>,
+    @location(11) model_matrix_1: vec4<f32>,
+    @location(12) model_matrix_2: vec4<f32>,
+    @location(13) model_matrix_3: vec4<f32>,
+    @location(14) instanceColor: vec4f,
+};
 
 struct VertexInput {
 	@location(0) position: vec3f,
@@ -46,13 +50,19 @@ struct VertexOutput {
 const pi = 3.14159265359;
 
 @vertex
-fn vs_main(in: VertexInput) -> VertexOutput {
+fn vs_main(in: VertexInput, instance: InstanceInput) -> VertexOutput {
+    let model_matrix = mat4x4<f32>(
+        instance.model_matrix_0,
+        instance.model_matrix_1,
+        instance.model_matrix_2,
+        instance.model_matrix_3,
+    );
     var out: VertexOutput;
-    let worldPosition = u.modelMatrix * vec4<f32>(in.position, 1.0);
+    let worldPosition = model_matrix * vec4<f32>(in.position, 1.0);
     out.position = u.projectionMatrix * u.viewMatrix * worldPosition;
     out.worldPosition = worldPosition.xyz;
     out.viewDirection = u.worldPos - worldPosition.xyz;
-    out.normal = (u.modelMatrix * vec4f(in.normal, 0.0)).xyz;
+    out.normal = (model_matrix * vec4f(in.normal, 0.0)).xyz;
     out.color = in.color;
     out.uv = in.uv;
     return out;
@@ -64,17 +74,16 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4f {
 	let encodedN = textureSample(normalTexture, textureSampler, in.uv).rgb;
     let N = normalize(encodedN - 0.5);
 	let V = normalize(in.viewDirection);
-	var diffuse = u.color.rgb * l.ambient.rgb;
+	var diffuse = in.color.rgb * l.ambient.rgb;
 	var specular = vec3<f32>(0.0);
 
 	//point lights
 	for (var i = 0; i < 4; i++) {
         let light = l.lights[i];
         //compute light pos relative to model
-        let lightPos = (u.modelMatrix * light.position).xyz;
-        let L = normalize(lightPos - in.worldPosition);
+        let L = normalize(light.position.xyz - in.worldPosition);
         //compute falloff based on intensity (pos w) and distance
-        let falloff = light.color.a / length(lightPos - in.worldPosition);
+        let falloff = light.color.a / length(light.position.xyz - in.worldPosition);
 
 		let R = -reflect(L, N); // equivalent to 2.0 * dot(N, L) * N - L
 		let RoV = max(0.0, dot(R, V));
@@ -94,5 +103,5 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4f {
 	// Gamma-correction
 	//let corrected_color = pow(color, vec3f(2.2));
 	let corrected_color = color;
-	return vec4f(corrected_color, u.color.a);
+	return vec4f(corrected_color, 1.0f);
 }

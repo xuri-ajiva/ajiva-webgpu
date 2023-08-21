@@ -50,6 +50,8 @@ namespace Ajiva {
         Ref<Ajiva::Renderer::Texture> depthTexture = nullptr;
         Ajiva::Renderer::UniformData uniforms = {};
         Ajiva::Renderer::LightningUniform lightningUniform = {};
+        std::vector<Ajiva::Renderer::InstanceData> instanceData;
+        Ref<Ajiva::Renderer::Buffer> instanceBuffer = nullptr;
         Ref<Ajiva::Renderer::Buffer> uniformBuffer = nullptr;
         Ref<Ajiva::Renderer::Buffer> lightningUniformBuffer = nullptr;
         Ref<Ajiva::Renderer::Buffer> vertexBuffer = nullptr;

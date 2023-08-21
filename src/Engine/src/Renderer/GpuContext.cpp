@@ -189,22 +189,60 @@ namespace Ajiva::Renderer {
         PLOG_INFO << "Creating render pipeline";
         wgpu::RenderPipelineDescriptor pipelineDesc;
 
-        wgpu::VertexBufferLayout vertexBufferLayout;
+        wgpu::VertexBufferLayout vertexBufferLayout[2];
         // [...] Build vertex buffer layout
-        vertexBufferLayout.attributeCount = vertexAttribs.size();
-        vertexBufferLayout.attributes = vertexAttribs.data();
+        vertexBufferLayout[0].attributeCount = vertexAttribs.size();
+        vertexBufferLayout[0].attributes = vertexAttribs.data();
         // == Common to attributes from the same buffer ==
-        vertexBufferLayout.arrayStride = sizeof(VertexData);
-        vertexBufferLayout.stepMode = wgpu::VertexStepMode::Vertex;
+        vertexBufferLayout[0].arrayStride = sizeof(VertexData);
+        vertexBufferLayout[0].stepMode = wgpu::VertexStepMode::Vertex;
 
-        pipelineDesc.vertex.bufferCount = 1;
-        pipelineDesc.vertex.buffers = &vertexBufferLayout;
+        // Instance buffer layout
+
+        WGPUVertexAttribute instanceAttributes[5] = {
+                WGPUVertexAttribute{
+                        .format = wgpu::VertexFormat::Float32x4,
+                        .offset = offsetof(Ajiva::Renderer::InstanceData, modelMatrix),
+                        .shaderLocation = 10,
+                },
+                WGPUVertexAttribute{
+                        .format = wgpu::VertexFormat::Float32x4,
+                        .offset = offsetof(Ajiva::Renderer::InstanceData, modelMatrix) + sizeof(glm::vec4),
+                        .shaderLocation = 11,
+                },
+                WGPUVertexAttribute{
+                        .format = wgpu::VertexFormat::Float32x4,
+                        .offset = offsetof(Ajiva::Renderer::InstanceData, modelMatrix) + sizeof(glm::vec4) * 2,
+                        .shaderLocation = 12,
+                },
+                WGPUVertexAttribute{
+                        .format = wgpu::VertexFormat::Float32x4,
+                        .offset = offsetof(Ajiva::Renderer::InstanceData, modelMatrix) + sizeof(glm::vec4) * 3,
+                        .shaderLocation = 13,
+                },
+                WGPUVertexAttribute{
+                        .format = wgpu::VertexFormat::Float32x4,
+                        .offset = offsetof(Ajiva::Renderer::InstanceData, color),
+                        .shaderLocation = 14,
+                }
+        };
+
+        vertexBufferLayout[1] = WGPUVertexBufferLayout{
+                .arrayStride = sizeof(InstanceData),
+                .stepMode = wgpu::VertexStepMode::Instance,
+                .attributeCount = 5,
+                .attributes = &instanceAttributes[0],
+        };
 
         // Vertex shader
-        pipelineDesc.vertex.module = *shaderModule;
-        pipelineDesc.vertex.entryPoint = "vs_main";
-        pipelineDesc.vertex.constantCount = 0;
-        pipelineDesc.vertex.constants = nullptr;
+        pipelineDesc.vertex = WGPUVertexState{
+                .module = *shaderModule,
+                .entryPoint = "vs_main",
+                .constantCount = 0,
+                .constants = nullptr,
+                .bufferCount = 2,
+                .buffers = &vertexBufferLayout[0],
+        };
 
         pipelineDesc.primitive.topology = wgpu::PrimitiveTopology::TriangleList;
         pipelineDesc.primitive.stripIndexFormat = wgpu::IndexFormat::Undefined;
@@ -333,13 +371,13 @@ namespace Ajiva::Renderer {
 
     Ref<Ajiva::Renderer::Buffer>
     GpuContext::CreateBuffer(uint64_t size, WGPUBufferUsageFlags usage, const char *label) const {
+        PLOG_VERBOSE << "Creating buffer: " << label << " size: " << size;
         wgpu::BufferDescriptor bufferDesc;
         bufferDesc.label = label;
         bufferDesc.usage = usage;
         bufferDesc.size = ALIGN_AT(size, 4);
         bufferDesc.mappedAtCreation = false;
         auto buffer = device->createBuffer(bufferDesc);
-        PLOG_VERBOSE << "Buffer: " << buffer;
         return CreateRef<Ajiva::Renderer::Buffer>(buffer, size, bufferDesc.size, queue);
     }
 

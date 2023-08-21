@@ -58,7 +58,6 @@ namespace Ajiva {
 
     bool Application::SetupPipeline() {
         uniforms = {
-                .color = {1.0f, 0.5f, 0.0f, 1.0f},
                 .time = 1.0f,
         };
 
@@ -75,13 +74,25 @@ namespace Ajiva {
                 .ks = 0.2f,
         };
 
+        constexpr int NumInstances = 10;
+        instanceData.reserve(NumInstances * NumInstances);
+        for (int i = 0; i < NumInstances; ++i) {
+            for (int j = 0; j < NumInstances; ++j) {
+                instanceData.push_back(
+                        {
+                                .modelMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(i * 2, j * 2, 1.0f)),
+                                .color = glm::vec4(1.0f, 0.0f, 1.0f / static_cast<float>(NumInstances), 1.0f),
+                        });
+            }
+        }
+
+        //todo move to member??? or not
+        Ref<wgpu::ShaderModule> shaderModule = context->CreateShaderModuleFromCode(loader->LoadFile("shader.wgsl"));
 
         BuildSwapChain();
         // Create the depth texture
         BuildDepthTexture();
 
-        //todo move to member??? or not
-        Ref<wgpu::ShaderModule> shaderModule = context->CreateShaderModuleFromCode(loader->LoadFile("shader.wgsl"));
 
         // Vertex fetch
         // We now have 2 attributes
@@ -190,6 +201,11 @@ namespace Ajiva {
                                                       "Index Buffer");*/
 
 
+        instanceBuffer = context->CreateFilledBuffer(instanceData.data(),
+                                                     instanceData.size() * sizeof(Ajiva::Renderer::InstanceData),
+                                                     wgpu::BufferUsage::CopyDst | wgpu::BufferUsage::Vertex,
+                                                     "Instance Buffer");
+
 
         //AJ_INFO("Startup Time: %s", clock.Total());
         PLOG_DEBUG << std::chrono::duration_cast<std::chrono::milliseconds>(clock.Total());
@@ -250,11 +266,12 @@ namespace Ajiva {
                                                                               {0.4, 0.4, 0.4, 1.0});
         renderPass.setPipeline(*renderPipeline);
         renderPass.setVertexBuffer(0, vertexBuffer->buffer, 0, vertexBuffer->size);
+        renderPass.setVertexBuffer(1, instanceBuffer->buffer, 0, instanceBuffer->size);
         /* renderPass.setIndexBuffer(indexBuffer->buffer, wgpu::IndexFormat::Uint16, 0,
                                    indexData.size() * sizeof(uint16_t));*/
         renderPass.setBindGroup(0, *bindGroupBuilder.bindGroup, 0, nullptr);
         //renderPass.drawIndexed(indexData.size(), 1, 0, 0, 0);
-        renderPass.draw(vertexBuffer->size / sizeof(Ajiva::Renderer::VertexData), 1, 0, 0);
+        renderPass.draw(vertexBuffer->size / sizeof(Ajiva::Renderer::VertexData), instanceData.size(), 0, 0);
 
         for (const auto &layer: layers) {
             if (!layer->IsEnabled()) continue;

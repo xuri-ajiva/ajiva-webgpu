@@ -42,12 +42,16 @@ namespace Ajiva::Renderer {
     struct UniformData {
         glm::mat4x4 projectionMatrix;
         glm::mat4x4 viewMatrix;
-        glm::mat4x4 modelMatrix;
-        glm::vec4 color;
         glm::vec3 worldPos;
         float time;
     };
     static_assert(sizeof(UniformData) % 16 == 0);
+
+    struct InstanceData {
+        glm::mat4x4 modelMatrix;
+        glm::vec4 color;
+    };
+    static_assert(sizeof(InstanceData) % 16 == 0);
 
     struct Light {
         glm::vec4 position;
