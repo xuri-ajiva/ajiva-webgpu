@@ -8,6 +8,7 @@
 namespace Ajiva::Renderer {
     void BindGroupBuilder::PushTexture(const Ref<Texture> &texture) {
         textures.push_back(texture);
+        textureVersions.push_back(texture->GetVersion());
 
         auto bindingIndex = (uint32_t) bindingLayoutEntries.size();
         wgpu::BindGroupLayoutEntry bindingLayout = wgpu::Default;
@@ -58,7 +59,7 @@ namespace Ajiva::Renderer {
         bindings.push_back(binding);
     }
 
-    std::shared_ptr<BindGroupLayout> BindGroupBuilder::BuildBindGroupLayout() {
+    void BindGroupBuilder::BuildBindGroupLayout() {
         if (bindGroup) {
             PLOG_WARNING << "BindGroup already build for: " << this;
         }
@@ -78,14 +79,34 @@ namespace Ajiva::Renderer {
             else PLOG_INFO << "\tBinding: " << i << " is Empty";
         }
 
-        auto bindGroupLayout = context->CreateBindGroupLayout(bindingLayoutEntries);
-
+        bindGroupLayout = context->CreateBindGroupLayout(bindingLayoutEntries);
         bindGroup = context->CreateBindGroup(bindGroupLayout, bindings);
-
-        return bindGroupLayout;
     }
 
     BindGroupBuilder::BindGroupBuilder(Ref<Renderer::GpuContext> context, Ref<Resource::Loader> loader) : context(
             std::move(context)), loader(std::move(loader)) {
+    }
+
+    void BindGroupBuilder::UpdateBindings() {
+        bool needsUpdate = false;
+
+        int j=0;
+        for (auto & binding : bindings) {
+            if (binding.textureView) {
+                auto &texture = textures[j];
+                if (textureVersions[j] != texture->GetVersion()) {
+                    needsUpdate = true;
+                    PLOG_DEBUG << "Binding Texture " << j << " updated from " << textureVersions[j] << " to "
+                              << texture->GetVersion() << " view from " << binding.textureView << " to "
+                              << texture->view;
+                    binding.textureView = texture->view;
+                    textureVersions[j] = texture->GetVersion();
+                }
+                j++;
+            }
+        }
+
+        if (needsUpdate)
+            bindGroup = context->CreateBindGroup(bindGroupLayout, bindings);
     }
 } // Ajiva

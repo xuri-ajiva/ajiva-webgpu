@@ -34,16 +34,21 @@ namespace Ajiva::Renderer {
                                                                               WGPUShaderStage_Fragment),
                         BufferBindingType type = BufferBindingType::Uniform);
 
-        std::shared_ptr<BindGroupLayout> BuildBindGroupLayout();
+        void BuildBindGroupLayout();
+
+        void UpdateBindings();
 
         Ref<wgpu::BindGroup> bindGroup = nullptr;
+        Ref<wgpu::BindGroupLayout> bindGroupLayout = nullptr;
     private:
         Ref<Renderer::GpuContext> context;
         Ref<Resource::Loader> loader;
+
         std::vector<wgpu::BindGroupLayoutEntry> bindingLayoutEntries;
         std::vector<wgpu::BindGroupEntry> bindings;
         std::vector<Ref<Renderer::Buffer>> uniformBuffers;
         std::vector<Ref<Renderer::Texture>> textures;
+        std::vector<u64> textureVersions;
         std::vector<Ref<Renderer::Sampler>> samplers;
     };
 
