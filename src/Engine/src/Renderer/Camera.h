@@ -123,6 +123,7 @@ namespace Ajiva::Renderer {
     };
 
     class FreeCamera : public EventCamera {
+        friend class ImGuiLayer;
     public:
         explicit FreeCamera(const Ref<Core::EventSystem> &eventSystem)
                 : EventCamera(eventSystem) {}
@@ -136,8 +137,7 @@ namespace Ajiva::Renderer {
         void translate(glm::vec3 v) override;
 
     private:
-        float yaw = 00.0f;
-        float pitch = 0.0f;
+        glm::vec2 angles = {0, 0};
         glm::vec3 front = glm::vec3(1.0f, 0.0f, 0.0f);
         glm::vec3 up = glm::vec3(0.0f, 0.0f, 1.0f);
         float mouseSensitivity = 0.3f;

@@ -39,8 +39,8 @@ namespace Ajiva {
         window->Run();
 
         //ImGui first to block camera input
-        Renderer::ImGuiLayer imGuiLayer(window, context, eventSystem, &lightningUniform);
         camera = CreateRef<Renderer::FreeCamera>(eventSystem);
+        Renderer::ImGuiLayer imGuiLayer(window, context, eventSystem, &lightningUniform,camera);
         camera->Init();
 
         bindGroupBuilder = Renderer::BindGroupBuilder(context, loader);
@@ -74,13 +74,13 @@ namespace Ajiva {
                 .ks = 0.2f,
         };
 
-        constexpr int NumInstances = 10;
+        constexpr int NumInstances = 100;
         instanceData.reserve(NumInstances * NumInstances);
         for (int i = 0; i < NumInstances; ++i) {
             for (int j = 0; j < NumInstances; ++j) {
                 instanceData.push_back(
                         {
-                                .modelMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(i * 2, j * 2, 1.0f)),
+                                .modelMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(i * 2.1f, j * 2.1f, 1.0f)),
                                 .color = glm::vec4(1.0f, 0.0f, 1.0f / static_cast<float>(NumInstances), 1.0f),
                         });
             }
@@ -163,7 +163,7 @@ namespace Ajiva {
 
         }
 
-        bool success = loader->LoadGeometryFromObj("plane.obj", vertexData, indexData);
+        bool success = loader->LoadGeometryFromObj("plane_med.obj", vertexData, indexData);
         if (!success) {
             std::cerr << "Could not load geometry!" << std::endl;
             return false;

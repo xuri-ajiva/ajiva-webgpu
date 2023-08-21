@@ -65,13 +65,13 @@ namespace Ajiva::Renderer {
     }
 
     void FreeCamera::onMouseMoved(float xRel, float yRel) {
-        yaw += xRel * mouseSensitivity;
-        pitch -= yRel * mouseSensitivity;
-        pitch = glm::clamp(pitch, -89.0f, 89.0f);
+        angles.x += xRel * mouseSensitivity;
+        angles.y -= yRel * mouseSensitivity;
+        angles.y = glm::clamp(angles.y, -89.0f, 89.0f);
 
-        front.x = cos(glm::radians(pitch)) * sin(glm::radians(yaw));
-        front.y = cos(glm::radians(pitch)) * cos(glm::radians(yaw));
-        front.z = sin(glm::radians(pitch));
+        front.x = cos(glm::radians(angles.y)) * sin(glm::radians(angles.x));
+        front.y = cos(glm::radians(angles.y)) * cos(glm::radians(angles.x));
+        front.z = sin(glm::radians(angles.y));
         front = glm::normalize(front);
         viewMatrix = glm::lookAt(position, position + front, up);
     }

@@ -11,9 +11,9 @@
 
 namespace Ajiva::Renderer {
     ImGuiLayer::ImGuiLayer(Ref<Platform::Window> window, Ref<GpuContext> context, Ref<Core::EventSystem> eventSystem,
-                           LightningUniform *pUniform)
+                           LightningUniform *pUniform, Ref<Renderer::FreeCamera> camara)
             : Layer("ImGuiLayer"), window(std::move(window)), context(std::move(context)),
-              eventSystem(std::move(eventSystem)), pUniform(pUniform) {
+              eventSystem(std::move(eventSystem)), pUniform(pUniform), camara(std::move(camara)) {
         //catch events as soon as possible
         this->events.push_back(this->eventSystem->Add(Core::MouseButtonDown, this, &ImGuiLayer::OnMouse));
         this->events.push_back(this->eventSystem->Add(Core::MouseButtonUp, this, &ImGuiLayer::OnMouse));
@@ -55,6 +55,35 @@ namespace Ajiva::Renderer {
 
         if (show_lightning_window)
             ShowLightningWindow();
+
+        if (show_camera_window)
+            ShowCameraWindow();
+    }
+
+    void ImGuiLayer::ShowCameraWindow() {
+        ImGui::Begin("Camera", &show_camera_window);
+        ImGui::SeparatorText("Translation");
+        ImGui::DragFloat3("Position", (float *) &camara->position, .05f, -10.0f, 10.0f);
+        ImGui::InputFloat3("Acceleration", (float *) &camara->acceleration, "%.3f", ImGuiInputTextFlags_ReadOnly);
+        ImGui::InputFloat3("Front", (float *) &camara->front, "%.3f", ImGuiInputTextFlags_ReadOnly);
+        ImGui::InputFloat3("Up", (float *) &camara->up, "%.3f", ImGuiInputTextFlags_ReadOnly);
+        ImGui::SeparatorText("Rotation");
+        ImGui::InputFloat2("Angles", (float *) &camara->angles, "%.3f", ImGuiInputTextFlags_ReadOnly);
+        ImGui::SeparatorText("Mouse");
+        ImGui::DragFloat("Mouse Sensitivity", &camara->mouseSensitivity, .01f, 0.0f, 10.0f);
+        ImGui::DragFloat("Speed", &camara->speed, .005f, 0.0f, 5.0f, "%.3f", ImGuiSliderFlags_Logarithmic);
+        ImGui::SeparatorText("Keys");
+        ImGui::Checkbox("Forward", &camara->forward_down);
+        ImGui::SameLine();
+        ImGui::Checkbox("Right", &camara->right_down);
+        ImGui::SameLine();
+        ImGui::Checkbox("Up", &camara->up_down);
+        ImGui::Checkbox("Backward", &camara->backward_down);
+        ImGui::SameLine();
+        ImGui::Checkbox("Left", &camara->left_down);
+        ImGui::SameLine();
+        ImGui::Checkbox("Down", &camara->down_down);
+        ImGui::End();
     }
 
     void ImGuiLayer::ShowLightningWindow() {

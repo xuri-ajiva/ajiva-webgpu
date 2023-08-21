@@ -14,7 +14,7 @@ namespace Ajiva::Renderer {
     class ImGuiLayer : public Ajiva::Core::Layer {
     public:
         ImGuiLayer(Ref<Platform::Window> window, Ref<GpuContext> context, Ref<Core::EventSystem> eventSystem,
-                   LightningUniform *pUniform);
+                   LightningUniform *pUniform, Ref<Renderer::FreeCamera> camara);
 
         void Attached() override;
 
@@ -35,12 +35,15 @@ namespace Ajiva::Renderer {
 
         bool OnMouse(AJ_EVENT_PARAMETERS);
 
+        Ref<Renderer::FreeCamera> camara;
         LightningUniform *pUniform;
         bool show_demo_window = true;
         bool show_lightning_window = true;
+        bool show_camera_window = true;
         bool app_log_open = true;
 
         void ShowLightningWindow();
+        void ShowCameraWindow();
     };
 
 }
