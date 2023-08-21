@@ -14,6 +14,7 @@
 #include "glfw3webgpu.h"
 #include "plog/Log.h"
 #include "Core/EventSystem.h"
+#include "glm/vec2.hpp"
 
 
 namespace Ajiva::Platform {
@@ -73,6 +74,7 @@ namespace Ajiva::Platform {
         GLFWwindow *window = nullptr;
         bool m_cloesed = false;
         Ref<Core::EventSystem> eventSystem;
+        glm::vec<2, i32> prevMousePos = {0, 0};
 
         bool CreateWindow();
 

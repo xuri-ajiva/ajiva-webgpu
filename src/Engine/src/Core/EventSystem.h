@@ -62,6 +62,8 @@ namespace Ajiva::Core {
             struct {
                 i32 x;
                 i32 y;
+                i32 dx;
+                i32 dy;
             } move;
         } mouse;
         struct {

@@ -78,7 +78,14 @@ namespace Ajiva::Platform {
         });
         glfwSetCursorPosCallback(window, [](GLFWwindow *pWindow, f64 x, f64 y) {
             GLFW_USER_PTR_CHECK()
-            Core::EventContext context = {.mouse = {.move = {.x = static_cast<i32>(x), .y = static_cast<i32>(y)}}};
+            Core::EventContext context = {.mouse = {.move = {
+                    .x = static_cast<i32>(x),
+                    .y = static_cast<i32>(y),
+                    .dx = static_cast<i32>(x - windowClass->prevMousePos.x),
+                    .dy = static_cast<i32>(y - windowClass->prevMousePos.y)
+            }}};
+            windowClass->prevMousePos.x = context.mouse.move.x;
+            windowClass->prevMousePos.y = context.mouse.move.y;
             if (ev->FireEvent(Core::EventCode::MouseMove, windowClass, context))
                 return;
         });
