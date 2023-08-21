@@ -40,7 +40,7 @@ namespace Ajiva {
 
         //ImGui first to block camera input
         Renderer::ImGuiLayer imGuiLayer(window, context, eventSystem, &lightningUniform);
-        camera = CreateRef<Renderer::Camera>(eventSystem);
+        camera = CreateRef<Renderer::FreeCamera>(eventSystem);
         camera->Init();
 
         bindGroupBuilder = Renderer::BindGroupBuilder(context, loader);
@@ -170,27 +170,7 @@ namespace Ajiva {
         }
 
 
-        {
-            //camera stuff
-            using glm::mat4x4;
-            using glm::vec4;
-            using glm::vec3;
-            using glm::cos;
-            using glm::sin;
-
-
-            vec3 eye = {0, 0, 0};
-            vec3 pos = {-2.0f, -3.0f, 2.0f};
-            mat4x4 V = glm::lookAt(pos, eye, vec3{0, 0, 1}); //z-up, (left handed ?? )
-            uniforms.viewMatrix = V;
-            uniforms.modelMatrix = glm::mat4(1.0f);
-
-            float ratio = static_cast<float>(window->GetWidth()) / static_cast<float>(window->GetHeight());
-            float fov = 45.0f * PI / 180.0f;
-            float near = 0.01f;
-            float far = 100.0f;
-            uniforms.projectionMatrix = glm::perspective(fov, ratio, near, far);
-        }
+        projection.aspect = static_cast<float>(window->GetWidth()) / static_cast<float>(window->GetHeight());
 
         vertexBuffer = context->CreateFilledBuffer(vertexData.data(),
                                                    vertexData.size() * sizeof(Ajiva::Renderer::VertexData),
@@ -228,6 +208,7 @@ namespace Ajiva {
                                      std::chrono::duration_cast<std::chrono::duration<float>>(clock.Total()).count()};
 
         bindGroupBuilder.UpdateBindings();
+        camera->Update();
 
         ///Before Render
 
@@ -250,6 +231,7 @@ namespace Ajiva {
                                glm::translate(mat4x4(1.0), vec3(0.5, 0.0, 0.0)) *
                                glm::scale(mat4x4(1.0), vec3(0.8f));*/
         uniforms.viewMatrix = camera->viewMatrix;
+        uniforms.projectionMatrix = projection.Build();
         uniforms.worldPos = camera->position;
         uniformBuffer->UpdateBufferData(&uniforms, sizeof(Ajiva::Renderer::UniformData));
         lightningUniformBuffer->UpdateBufferData(&lightningUniform, sizeof(Ajiva::Renderer::LightningUniform));
@@ -307,9 +289,10 @@ namespace Ajiva {
         BuildDepthTexture();
 
         //update "camera"
-        uniforms.projectionMatrix = glm::perspective(glm::radians(45.0f), static_cast<float>(event.windowRect.width) /
+/*        uniforms.projectionMatrix = glm::perspective(glm::radians(45.0f), static_cast<float>(event.windowRect.width) /
                                                                           static_cast<float>(event.windowRect.height),
-                                                     0.1f, 100.0f);
+                                                     0.1f, 100.0f);*/
+        projection.aspect = static_cast<float>(event.windowRect.width) / static_cast<float>(event.windowRect.height);
         uniformBuffer->UpdateBufferData(&uniforms, sizeof(Ajiva::Renderer::UniformData));
         return false;
     }

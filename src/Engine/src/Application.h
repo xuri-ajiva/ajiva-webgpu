@@ -60,7 +60,8 @@ namespace Ajiva {
         Renderer::BindGroupBuilder bindGroupBuilder;
         std::vector<Ajiva::Renderer::VertexData> vertexData;
         std::vector<u16> indexData;
-        Ref<Renderer::Camera> camera;
+        Ref<Renderer::EventCamera> camera;
+        Renderer::Projection projection = {};
 
         std::vector<Ref<Ajiva::Core::Layer>> layers;
         std::vector<Ref<Ajiva::Core::IListener>> events;
