@@ -11,11 +11,9 @@ namespace Ajiva {
     namespace Renderer {
 
         class AJ_API Texture {
-            bool cleanUp = true;
-            Ref<wgpu::Queue> queue;
         public:
             wgpu::TextureFormat textureFormat;
-            wgpu::Extent3D size;
+            wgpu::Extent3D size; //todo already present in texture!
 
             wgpu::Texture texture;
             wgpu::TextureView view;
@@ -25,12 +23,27 @@ namespace Ajiva {
                     wgpu::TextureFormat textureFormat, wgpu::TextureAspect aspect, wgpu::Extent3D textureSize,
                     bool cleanUp = true);
 
+            void SwapBackingTexture(const Ref<Texture> &other);
+
             ~Texture();
+
+            void Destroy();
+
+            [[nodiscard]] u64 GetVersion();
 
             void
             WriteTexture(const void *data, size_t length, wgpu::Extent3D writeSize = {0, 0, 0}, uint32_t mipLevel = 0);
 
             void WriteTextureMips(const void *data, size_t length, uint32_t mipLevelCount);
+
+            AJ_INLINE void SetCleanUp(bool pCleanUp) { Texture::cleanUp = pCleanUp; }
+
+        private:
+            void SwapBackingTextureInternal();
+            bool cleanUp = true;
+            Ref<wgpu::Queue> queue;
+            Ref<Texture> toSwap = nullptr;
+            u64 version = INVALID_ID_U64;
         };
 
     } // Ajiva

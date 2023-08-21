@@ -15,15 +15,21 @@ namespace Ajiva::Renderer {
             : textureFormat(textureFormat), size(textureSize), texture(texture),
               view(textureView), cleanUp(cleanUp), queue(std::move(queue)), aspect(aspect) {
         AJ_RegisterCreated(this, typeid(Texture));
+        version = 0;
     }
+
 
     Texture::~Texture() {
         if (cleanUp) {
-            view.release();
-            texture.destroy();
-            texture.release();
-            AJ_RegisterDestroyed(this, typeid(Texture));
+            Destroy();
         }
+        AJ_RegisterDestroyed(this, typeid(Texture));
+    }
+
+    void Texture::Destroy() {
+        view.release();
+        texture.destroy();
+        texture.release();
     }
 
     void Texture::WriteTexture(const void *data, size_t length, wgpu::Extent3D writeSize, uint32_t mipLevel) {
@@ -121,6 +127,28 @@ namespace Ajiva::Renderer {
             }
 
         }
+    }
+
+    u64 Texture::GetVersion() {
+        if (toSwap != nullptr) {
+            SwapBackingTextureInternal();
+        }
+        return version;
+    }
+
+    void Texture::SwapBackingTexture(const Ref<Texture> &other) {
+        toSwap = other;
+    }
+
+    void Texture::SwapBackingTextureInternal() {
+        std::swap(this->texture, toSwap->texture);
+        std::swap(this->view, toSwap->view);
+        std::swap(this->textureFormat, toSwap->textureFormat);
+        std::swap(this->aspect, toSwap->aspect);
+        std::swap(this->size, toSwap->size);
+        version++;
+        toSwap->version++;
+        toSwap = nullptr;
     }
 
 } // Ajiva::Renderer
