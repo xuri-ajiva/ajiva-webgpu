@@ -83,22 +83,22 @@ namespace Ajiva::Renderer {
         bindGroup = context->CreateBindGroup(bindGroupLayout, bindings);
     }
 
-    BindGroupBuilder::BindGroupBuilder(Ref<Renderer::GpuContext> context, Ref<Resource::Loader> loader) : context(
-            std::move(context)), loader(std::move(loader)) {
+    BindGroupBuilder::BindGroupBuilder(Ref<Renderer::GpuContext> context, Ref<Resource::Loader> loader)
+            : context(std::move(context)), loader(std::move(loader)) {
     }
 
     void BindGroupBuilder::UpdateBindings() {
         bool needsUpdate = false;
 
-        int j=0;
-        for (auto & binding : bindings) {
+        int j = 0;
+        for (auto &binding: bindings) {
             if (binding.textureView) {
                 auto &texture = textures[j];
                 if (textureVersions[j] != texture->GetVersion()) {
                     needsUpdate = true;
                     PLOG_DEBUG << "Binding Texture " << j << " updated from " << textureVersions[j] << " to "
-                              << texture->GetVersion() << " view from " << binding.textureView << " to "
-                              << texture->view;
+                               << texture->GetVersion() << " view from " << binding.textureView << " to "
+                               << texture->view;
                     binding.textureView = texture->view;
                     textureVersions[j] = texture->GetVersion();
                 }

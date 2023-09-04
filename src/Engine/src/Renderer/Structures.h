@@ -9,6 +9,7 @@
 
 namespace Ajiva::Renderer {
     using namespace glm;
+
     struct VertexData { //move to resource
         glm::vec3 position;
         glm::vec3 normal;
@@ -39,7 +40,10 @@ namespace Ajiva::Renderer {
         glm::mat4x4 projectionMatrix;
         glm::mat4x4 viewMatrix;
         glm::vec3 worldPos;
+        glm::vec2 resolution;
         float time;
+        float gamma;
+        float padding[1];
     };
     static_assert(sizeof(UniformData) % 16 == 0);
 
@@ -64,4 +68,18 @@ namespace Ajiva::Renderer {
         float padding;
     };
     static_assert(sizeof(LightningUniform) % 16 == 0);
+
+    struct Material {
+        glm::vec3 baseColor;
+        float metallic;
+        float specular;         // Specular reflection, calculated from metallic
+        float roughness;
+        float ior;              // Index of Refraction
+
+        glm::vec3 emission;
+        float alpha;            // Opacity (1.0 - fully opaque, 0.0 - fully transparent)
+        float sheen;            // Sheen intensity
+        //glm::vec3 anisotropic;  // Anisotropic reflection factor
+    };
+    static_assert(sizeof(Material) % 16 == 0);
 }

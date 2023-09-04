@@ -13,6 +13,7 @@
 #include "Core/Layer.h"
 #include "Renderer/BindGroupBuilder.h"
 #include "Core/ThreadPool.h"
+#include "Renderer/GraphicsResourceManager.h"
 
 namespace Ajiva {
     struct ApplicationConfig {
@@ -45,30 +46,16 @@ namespace Ajiva {
         Ref<Ajiva::Resource::Loader> loader;
         Ref<Core::EventSystem> eventSystem = nullptr;
 
-
-        Ref<wgpu::SwapChain> swapChain = nullptr;
-        Ref<Ajiva::Renderer::Texture> depthTexture = nullptr;
-        Ajiva::Renderer::UniformData uniforms = {};
-        Ajiva::Renderer::LightningUniform lightningUniform = {};
-        std::vector<Ajiva::Renderer::InstanceData> instanceData;
-        Ref<Ajiva::Renderer::Buffer> instanceBuffer = nullptr;
-        Ref<Ajiva::Renderer::Buffer> uniformBuffer = nullptr;
-        Ref<Ajiva::Renderer::Buffer> lightningUniformBuffer = nullptr;
-        Ref<Ajiva::Renderer::Buffer> vertexBuffer = nullptr;
-        //Ref<Ajiva::Renderer::Buffer> indexBuffer;
-        Ref<wgpu::RenderPipeline> renderPipeline = nullptr;
-        Renderer::BindGroupBuilder bindGroupBuilder;
-        std::vector<Ajiva::Renderer::VertexData> vertexData;
-        std::vector<u16> indexData;
         Ref<Renderer::FreeCamera> camera;
         Renderer::Projection projection = {};
+        Ref<wgpu::SwapChain> swapChain = nullptr;
 
+        Ref<Renderer::GraphicsResourceManager> graphicsResourceManager;
         std::vector<Ref<Ajiva::Core::Layer>> layers;
         std::vector<Ref<Ajiva::Core::IListener>> events;
 
         Ref<Core::ThreadPool<>> threadPool;
     private:
-        bool SetupPipeline();
 
         void BuildSwapChain();
 

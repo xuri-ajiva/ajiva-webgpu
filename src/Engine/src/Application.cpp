@@ -7,6 +7,8 @@
 #include <glm/ext.hpp>
 #include "Core/Layer.h"
 #include "Renderer/ImGuiLayer.h"
+#include "Resource/FilesNames.hpp"
+#include "Renderer/RenderPipelineLayer.h"
 
 namespace Ajiva {
 
@@ -31,6 +33,7 @@ namespace Ajiva {
 
         context = CreateRef<Renderer::GpuContext>();
         loader = CreateRef<Resource::Loader>(config.ResourceDirectory, threadPool);
+        graphicsResourceManager = CreateRef<Renderer::GraphicsResourceManager>(context, loader);
         window = CreateRef<Platform::Window>(config.WindowConfig, eventSystem);
 
         clock.Start();
@@ -40,152 +43,28 @@ namespace Ajiva {
 
         //ImGui first to block camera input
         camera = CreateRef<Renderer::FreeCamera>(eventSystem);
-        Renderer::ImGuiLayer imGuiLayer(window, context, eventSystem, &lightningUniform,camera);
+        Renderer::RenderPipelineLayer pipeline(context, loader, graphicsResourceManager,
+                                               [this]() -> glm::mat4x4 { //todo make more compact
+                                        return camera->viewMatrix;
+                                    }, [this]() -> glm::mat4x4 {
+                    return glm::perspective(glm::radians(45.0f), projection.aspect, 0.1f, 100.0f);
+                }, [this]() -> glm::vec3 {
+                    return camera->position;
+                });
+        auto pipelineRef = CreateRef<Renderer::RenderPipelineLayer>(pipeline);
+        Renderer::ImGuiLayer imGuiLayer(window, context, eventSystem, pipelineRef, camera);
         camera->Init();
 
-        bindGroupBuilder = Renderer::BindGroupBuilder(context, loader);
-
         //layers
+        layers.push_back(pipelineRef);
         layers.push_back(CreateRef<Renderer::ImGuiLayer>(imGuiLayer));
 
         for (const auto &layer: layers) {
             if (!layer->IsEnabled()) continue;
             layer->Attached();
         }
-        SetupPipeline();
-        return true;
-    }
-
-    bool Application::SetupPipeline() {
-        uniforms = {
-                .time = 1.0f,
-        };
-
-        lightningUniform = {
-                .lights = {
-                        {.position = {0.5f, 0.5f, 1.0f, 0}, .color = {1.0f, 1.0f, 1.0f, 1.0f}},
-                        {.position = {1.0f, 1.0f, 1.0f, 0}, .color = {1.0f, 0.0f, 0.0f, 1.0f}},
-                        {.position = {1.0f, 0.0f, 1.0f, 0}, .color = {0.0f, 1.0f, 0.0f, 1.0f}},
-                        {.position = {0.0f, 1.0f, 1.0f, 0}, .color = {0.0f, 0.0f, 1.0f, 1.0f}},
-                },
-                .ambient = {0.5f, 0.5f, 0.5f, 1.0f},
-                .hardness = 32.0f,
-                .kd = 0.8f,
-                .ks = 0.2f,
-        };
-
-        constexpr int NumInstances = 100;
-        instanceData.reserve(NumInstances * NumInstances);
-        for (int i = 0; i < NumInstances; ++i) {
-            for (int j = 0; j < NumInstances; ++j) {
-                instanceData.push_back(
-                        {
-                                .modelMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(i * 2.1f, j * 2.1f, 1.0f)),
-                                .color = glm::vec4(1.0f, 0.0f, 1.0f / static_cast<float>(NumInstances), 1.0f),
-                        });
-            }
-        }
-
-        //todo move to member??? or not
-        Ref<wgpu::ShaderModule> shaderModule = context->CreateShaderModuleFromCode(loader->LoadFile("shader.wgsl"));
-
-        BuildSwapChain();
-        // Create the depth texture
-        BuildDepthTexture();
-
-
-        // Vertex fetch
-        // We now have 2 attributes
-        std::vector<wgpu::VertexAttribute> vertexAttribs = {
-                WGPUVertexAttribute{ //todo macro this
-                        .format = wgpu::VertexFormat::Float32x3,
-                        .offset = offsetof(Ajiva::Renderer::VertexData, position),
-                        .shaderLocation = 0,
-                },
-                WGPUVertexAttribute{
-                        .format = wgpu::VertexFormat::Float32x3,
-                        .offset = offsetof(Ajiva::Renderer::VertexData, normal),
-                        .shaderLocation = 1,
-                },
-                WGPUVertexAttribute{
-                        .format = wgpu::VertexFormat::Float32x3,
-                        .offset = offsetof(Ajiva::Renderer::VertexData, color),
-                        .shaderLocation = 2,
-                },
-                WGPUVertexAttribute{
-                        .format = wgpu::VertexFormat::Float32x2,
-                        .offset = offsetof(Ajiva::Renderer::VertexData, uv),
-                        .shaderLocation = 3,
-                },
-        };
-
-/*    auto depthTexture = context->CreateTexture(TextureFormat::Depth24Plus, {static_cast<uint32_t>(window->GetWidth()),
-                                                                           static_cast<uint32_t>(window->GetHeight()),
-                                                                           1});*/
-
-        {
-            uniformBuffer = context->CreateFilledBuffer(&uniforms, sizeof(Ajiva::Renderer::UniformData),
-                                                        wgpu::BufferUsage::CopyDst | wgpu::BufferUsage::Uniform,
-                                                        "Uniform Buffer");
-            bindGroupBuilder.PushBuffer(uniformBuffer);
-
-            const int mipLevelCount = 8;
-            auto sampler = context->CreateSampler(wgpu::AddressMode::Repeat, wgpu::FilterMode::Linear,
-                                                  wgpu::CompareFunction::Undefined, 0.0f, 1.0f * mipLevelCount,
-                                                  "Sampler");
-            bindGroupBuilder.PushSampler(sampler);
-
-            auto texture = loader->LoadTextureAsync("cobblestone_floor_08_diff_2k.jpg", *context, mipLevelCount);
-            if (!texture) {
-                AJ_FAIL("Could not load texture!");
-                return false;
-            }
-            bindGroupBuilder.PushTexture(texture);
-
-            texture = loader->LoadTextureAsync("cobblestone_floor_08_nor_gl_2k.png", *context, mipLevelCount);
-            if (!texture) {
-                AJ_FAIL("Could not load texture!");
-                return false;
-            }
-            bindGroupBuilder.PushTexture(texture);
-
-            lightningUniformBuffer = context->CreateFilledBuffer(&uniforms, sizeof(Ajiva::Renderer::LightningUniform),
-                                                                 wgpu::BufferUsage::CopyDst |
-                                                                 wgpu::BufferUsage::Uniform,
-                                                                 "Lightning Uniform Buffer");
-            bindGroupBuilder.PushBuffer(lightningUniformBuffer);
-
-
-            bindGroupBuilder.BuildBindGroupLayout();
-            renderPipeline = context->CreateRenderPipeline(shaderModule, std::vector{*bindGroupBuilder.bindGroupLayout},
-                                                           vertexAttribs,
-                                                           depthTexture->textureFormat);
-
-        }
-
-        bool success = loader->LoadGeometryFromObj("plane_med.obj", vertexData, indexData);
-        if (!success) {
-            std::cerr << "Could not load geometry!" << std::endl;
-            return false;
-        }
-
-
         projection.aspect = static_cast<float>(window->GetWidth()) / static_cast<float>(window->GetHeight());
-
-        vertexBuffer = context->CreateFilledBuffer(vertexData.data(),
-                                                   vertexData.size() * sizeof(Ajiva::Renderer::VertexData),
-                                                   wgpu::BufferUsage::CopyDst | wgpu::BufferUsage::Vertex,
-                                                   "Vertex Buffer");
-        /*auto indexBuffer = context->CreateFilledBuffer(indexData.data(), indexData.size() * sizeof(uint16_t),
-                                                      wgpu::BufferUsage::CopyDst | wgpu::BufferUsage::Index,
-                                                      "Index Buffer");*/
-
-
-        instanceBuffer = context->CreateFilledBuffer(instanceData.data(),
-                                                     instanceData.size() * sizeof(Ajiva::Renderer::InstanceData),
-                                                     wgpu::BufferUsage::CopyDst | wgpu::BufferUsage::Vertex,
-                                                     "Instance Buffer");
-
+        BuildSwapChain();
 
         //AJ_INFO("Startup Time: %s", clock.Total());
         PLOG_DEBUG << std::chrono::duration_cast<std::chrono::milliseconds>(clock.Total());
@@ -207,10 +86,15 @@ namespace Ajiva {
                                       std::chrono::duration_cast<std::chrono::duration<float>>(clock.Delta()).count(),
                                       std::chrono::duration_cast<std::chrono::duration<float>>(clock.Total()).count()};
 
-        bindGroupBuilder.UpdateBindings();
+        //update "camera"
         camera->Update();
 
-        ///Before Render
+        static std::string lastStats;
+        auto newStats = graphicsResourceManager->Statistics();
+        if (newStats != lastStats) {
+            PLOG_INFO << newStats;
+            lastStats = newStats;
+        }
 
         for (const auto &layer: layers) {
             if (!layer->IsEnabled()) continue;
@@ -225,17 +109,6 @@ namespace Ajiva {
             window->RequestClose();
         }
 
-        //update "camera"
-        uniforms.time = frameInfo.TotalTime;
-/*        uniforms.modelMatrix = glm::rotate(mat4x4(1.0), uniforms.time, vec3(0.0, 0.0, 1.0)) *
-                               glm::translate(mat4x4(1.0), vec3(0.5, 0.0, 0.0)) *
-                               glm::scale(mat4x4(1.0), vec3(0.8f));*/
-        uniforms.viewMatrix = camera->viewMatrix;
-        uniforms.projectionMatrix = projection.Build();
-        uniforms.worldPos = camera->position;
-        uniformBuffer->UpdateBufferData(&uniforms, sizeof(Ajiva::Renderer::UniformData));
-        lightningUniformBuffer->UpdateBufferData(&lightningUniform, sizeof(Ajiva::Renderer::LightningUniform));
-
         for (const auto &layer: layers) {
             if (!layer->IsEnabled()) continue;
             //todo render to texture and blend into nextTexture
@@ -247,31 +120,7 @@ namespace Ajiva {
             layer->Render(frameInfo, renderTarget);
         }
 
-
-        wgpu::CommandEncoder encoder = context->CreateCommandEncoder();
-
-        wgpu::RenderPassEncoder renderPass = context->CreateRenderPassEncoder(encoder, nextTexture, depthTexture->view,
-                                                                              {0.4, 0.4, 0.4, 1.0});
-        renderPass.setPipeline(*renderPipeline);
-        renderPass.setVertexBuffer(0, vertexBuffer->buffer, 0, vertexBuffer->size);
-        renderPass.setVertexBuffer(1, instanceBuffer->buffer, 0, instanceBuffer->size);
-        /* renderPass.setIndexBuffer(indexBuffer->buffer, wgpu::IndexFormat::Uint16, 0,
-                                   indexData.size() * sizeof(uint16_t));*/
-        renderPass.setBindGroup(0, *bindGroupBuilder.bindGroup, 0, nullptr);
-        //renderPass.drawIndexed(indexData.size(), 1, 0, 0, 0);
-        renderPass.draw(vertexBuffer->size / sizeof(Ajiva::Renderer::VertexData), instanceData.size(), 0, 0);
-
-        for (const auto &layer: layers) {
-            if (!layer->IsEnabled()) continue;
-            layer->AfterRender(renderPass);
-        }
-
-        renderPass.end();
-
         nextTexture.release();
-
-        context->SubmitEncoder(encoder);
-
         swapChain->present();
     }
 
@@ -299,7 +148,7 @@ namespace Ajiva {
                                                                           static_cast<float>(event.windowRect.height),
                                                      0.1f, 100.0f);*/
         projection.aspect = static_cast<float>(event.windowRect.width) / static_cast<float>(event.windowRect.height);
-        uniformBuffer->UpdateBufferData(&uniforms, sizeof(Ajiva::Renderer::UniformData));
+//TODO??        uniformBuffer->UpdateBufferData(&uniforms, sizeof(Ajiva::Renderer::UniformData));
         return false;
     }
 
@@ -313,8 +162,6 @@ namespace Ajiva {
 
     void Application::BuildDepthTexture() {
         //the ref should auto release
-        depthTexture = context->CreateDepthTexture(
-                {static_cast<uint32_t>(window->GetWidth()), static_cast<uint32_t>(window->GetHeight()), 1});
-        PLOG_INFO << "Depth Texture " << depthTexture->texture << " " << depthTexture->view;
+
     }
 }
