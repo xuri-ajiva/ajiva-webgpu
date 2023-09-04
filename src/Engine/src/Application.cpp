@@ -203,9 +203,9 @@ namespace Ajiva {
         using glm::vec3;
 
         clock.Update();
-        Core::FrameInfo frameInfo = {clock.Ticks(),
-                                     std::chrono::duration_cast<std::chrono::duration<float>>(clock.Delta()).count(),
-                                     std::chrono::duration_cast<std::chrono::duration<float>>(clock.Total()).count()};
+        Core::UpdateInfo frameInfo = {clock.Ticks(),
+                                      std::chrono::duration_cast<std::chrono::duration<float>>(clock.Delta()).count(),
+                                      std::chrono::duration_cast<std::chrono::duration<float>>(clock.Total()).count()};
 
         bindGroupBuilder.UpdateBindings();
         camera->Update();
@@ -214,7 +214,7 @@ namespace Ajiva {
 
         for (const auto &layer: layers) {
             if (!layer->IsEnabled()) continue;
-            layer->BeforeRender();
+            layer->Update(frameInfo);
         }
 
         wgpu::TextureView nextTexture = swapChain->getCurrentTextureView();
@@ -238,7 +238,13 @@ namespace Ajiva {
 
         for (const auto &layer: layers) {
             if (!layer->IsEnabled()) continue;
-            layer->Render(frameInfo);
+            //todo render to texture and blend into nextTexture
+            auto renderTarget = Core::RenderTarget{
+                    .texture = nextTexture,
+                    .extent  = {static_cast<uint32_t>(window->GetWidth()), static_cast<uint32_t>(window->GetHeight()),
+                                1},//todo need accurate size for multithreading
+            };
+            layer->Render(frameInfo, renderTarget);
         }
 
 

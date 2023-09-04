@@ -8,21 +8,25 @@
 
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_wgpu.h"
+#include "RenderPipelineLayer.h"
 
 namespace Ajiva::Renderer {
     ImGuiLayer::ImGuiLayer(Ref<Platform::Window> window, Ref<GpuContext> context, Ref<Core::EventSystem> eventSystem,
-                           LightningUniform *pUniform, Ref<Renderer::FreeCamera> camara)
+                           Ref<Renderer::RenderPipelineLayer> pipeline, Ref<Renderer::FreeCamera> camara)
             : Layer("ImGuiLayer"), window(std::move(window)), context(std::move(context)),
-              eventSystem(std::move(eventSystem)), pUniform(pUniform), camara(std::move(camara)) {
+              eventSystem(std::move(eventSystem)), pipeline(std::move(pipeline)), camara(std::move(camara)) {
         //catch events as soon as possible
         this->events.push_back(this->eventSystem->Add(Core::MouseButtonDown, this, &ImGuiLayer::OnMouse));
         this->events.push_back(this->eventSystem->Add(Core::MouseButtonUp, this, &ImGuiLayer::OnMouse));
         this->events.push_back(this->eventSystem->Add(Core::MouseScroll, this, &ImGuiLayer::OnMouse));
+        this->events.push_back(this->eventSystem->Add(Core::MouseMove, this, &ImGuiLayer::OnMouse));
+        this->events.push_back(this->eventSystem->Add(Core::KeyDown, this, &ImGuiLayer::OnKey));
+        this->events.push_back(this->eventSystem->Add(Core::KeyUp, this, &ImGuiLayer::OnKey));
     }
 
     static inline void ImGuiColorStyle();
 
-    void ImGuiLayer::Attached() {
+    bool ImGuiLayer::Attached() {
         IMGUI_CHECKVERSION();
         ImGui::CreateContext();
         [[maybe_unused]] ImGuiIO &io = ImGui::GetIO();
@@ -30,8 +34,15 @@ namespace Ajiva::Renderer {
         ImGuiColorStyle();
         //ImGui::StyleColorsLight();
         // Setup Platform/Renderer backends
-        ImGui_ImplGlfw_InitForOther(window->GetWindow(), true);
-        ImGui_ImplWGPU_Init(*context->device, 3, context->swapChainFormat, context->depthTextureFormat);
+        if (!ImGui_ImplGlfw_InitForOther(window->GetWindow(), true)) {
+            PLOG_ERROR << "ImGui_ImplGlfw_InitForOther failed";
+            return false;
+        }
+        if (!ImGui_ImplWGPU_Init(*context->device, 3, context->swapChainFormat, WGPUTextureFormat_Undefined)) {
+            PLOG_ERROR << "ImGui_ImplWGPU_Init failed";
+            return false;
+        }
+        return true;
     }
 
     void ImGuiLayer::Detached() {
@@ -40,14 +51,14 @@ namespace Ajiva::Renderer {
         ImGui_ImplWGPU_Shutdown();
     }
 
-    void ImGuiLayer::BeforeRender() {
+    void ImGuiLayer::Render(Core::UpdateInfo updateInfo, Core::RenderTarget target) {
+        Layer::Render(updateInfo, target);
+
         //TODO io.DisplaySize = ImVec2((float) window.GetWidth(), (float) window.GetHeight());
         ImGui_ImplWGPU_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
-    }
 
-    void ImGuiLayer::Render(Core::FrameInfo frameInfo) {
         if (show_demo_window)
             ImGui::ShowDemoWindow(&show_demo_window);
         if (app_log_open)
@@ -58,6 +69,10 @@ namespace Ajiva::Renderer {
 
         if (show_camera_window)
             ShowCameraWindow();
+
+        ImGui::Render();
+
+        RenderIntern(target);
     }
 
     void ImGuiLayer::ShowCameraWindow() {
@@ -87,6 +102,8 @@ namespace Ajiva::Renderer {
     }
 
     void ImGuiLayer::ShowLightningWindow() {
+        auto pUniform = &pipeline->lightningUniform;
+
         ImGui::Begin("Lightning", &show_lightning_window);
         static bool alpha_preview = true;
         static bool alpha_half_preview = false;
@@ -119,10 +136,6 @@ namespace Ajiva::Renderer {
         ImGui::End();
     }
 
-    void ImGuiLayer::AfterRender(wgpu::RenderPassEncoder renderPass) {
-        ImGui::Render();
-        ImGui_ImplWGPU_RenderDrawData(ImGui::GetDrawData(), renderPass);
-    }
 
     bool ImGuiLayer::OnMouse(AJ_EVENT_PARAMETERS) {
         ImGuiIO &io = ImGui::GetIO();
@@ -130,6 +143,34 @@ namespace Ajiva::Renderer {
             return true; //stop propagation
         }
         return false;
+    }
+    bool ImGuiLayer::OnKey(AJ_EVENT_PARAMETERS) {
+        ImGuiIO &io = ImGui::GetIO();
+        if (io.WantCaptureKeyboard) {
+            return true; //stop propagation
+        }
+        return false;
+    }
+
+    void ImGuiLayer::RenderIntern(Core::RenderTarget target) {
+        wgpu::CommandEncoder encoder = context->CreateCommandEncoder();
+
+        wgpu::RenderPassDescriptor renderPassDesc{};
+        wgpu::RenderPassColorAttachment renderPassColorAttachment;
+        renderPassColorAttachment.view = target.texture;
+        renderPassColorAttachment.resolveTarget = nullptr;
+        renderPassColorAttachment.loadOp = wgpu::LoadOp::Load;
+        renderPassColorAttachment.storeOp = wgpu::StoreOp::Store;
+        renderPassColorAttachment.clearValue = {0.4, 0.4, 0.4, 1.0};
+        renderPassDesc.colorAttachmentCount = 1;
+        renderPassDesc.colorAttachments = &renderPassColorAttachment;
+
+        renderPassDesc.timestampWriteCount = 0;
+        renderPassDesc.timestampWrites = nullptr;
+        auto renderPass = encoder.beginRenderPass(renderPassDesc);
+        ImGui_ImplWGPU_RenderDrawData(ImGui::GetDrawData(), renderPass);
+        renderPass.end();
+        context->SubmitEncoder(encoder);
     }
 
 

@@ -9,27 +9,29 @@
 #include "webgpu/webgpu.hpp"
 
 namespace Ajiva::Core {
-    struct FrameInfo {
+    struct UpdateInfo {
         u64 FrameNumber;
         f64 FrameDelta;
         f64 TotalTime;
+    };
+    struct RenderTarget {
+        wgpu::TextureView texture;
+        wgpu::Extent3D extent; //todo include start offset
     };
 
     class AJ_API Layer {
     public:
         explicit Layer(std::string name) : name(std::move(name)) {}
 
+        Layer() = default;
+
         virtual ~Layer() = default;
 
-        virtual void Attached() {}
-
+        virtual bool Attached() { return false; }
         virtual void Detached() {}
 
-        virtual void BeforeRender() {}
-
-        virtual void Render(FrameInfo frameInfo) {}
-
-        virtual void AfterRender(wgpu::RenderPassEncoder renderpass) {}
+        virtual void Render(UpdateInfo frameInfo, RenderTarget target) {}
+        virtual void Update(UpdateInfo frameInfo) {}
 
         [[nodiscard]] inline const std::string &Name() const {
             return name;

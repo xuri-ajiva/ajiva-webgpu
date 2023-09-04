@@ -9,22 +9,19 @@
 
 #include "imgui.h"
 #include "Application.h"
+#include "RenderPipelineLayer.h"
 
 namespace Ajiva::Renderer {
     class ImGuiLayer : public Ajiva::Core::Layer {
     public:
         ImGuiLayer(Ref<Platform::Window> window, Ref<GpuContext> context, Ref<Core::EventSystem> eventSystem,
-                   LightningUniform *pUniform, Ref<Renderer::FreeCamera> camara);
+                   Ref<Renderer::RenderPipelineLayer> pipeline, Ref<Renderer::FreeCamera> camara);
 
-        void Attached() override;
+        bool Attached() override;
 
         void Detached() override;
 
-        void BeforeRender() override;
-
-        void Render(Core::FrameInfo frameInfo) override;
-
-        void AfterRender(wgpu::RenderPassEncoder renderPass) override;
+        void Render(Core::UpdateInfo updateInfo, Core::RenderTarget target) override;
 
     private:
         Ref<Ajiva::Platform::Window> window;
@@ -34,9 +31,10 @@ namespace Ajiva::Renderer {
         std::vector<Ref<Ajiva::Core::IListener>> events;
 
         bool OnMouse(AJ_EVENT_PARAMETERS);
+        bool OnKey(AJ_EVENT_PARAMETERS);
 
         Ref<Renderer::FreeCamera> camara;
-        LightningUniform *pUniform;
+        Ref<Renderer::RenderPipelineLayer> pipeline;
         bool show_demo_window = true;
         bool show_lightning_window = true;
         bool show_camera_window = true;
@@ -44,6 +42,9 @@ namespace Ajiva::Renderer {
 
         void ShowLightningWindow();
         void ShowCameraWindow();
+
+        void RenderIntern(Core::RenderTarget target);
+
     };
 
 }
