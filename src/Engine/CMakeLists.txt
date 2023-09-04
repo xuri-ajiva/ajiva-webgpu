@@ -41,7 +41,25 @@ add_library(Engine STATIC
         src/Renderer/BindGroupBuilder.h
         src/Core/ThreadPool.cpp
         src/Core/ThreadPool.h
+        src/Resource/FilesNames.hpp
+        src/Renderer/GraphicsResourceManager.cpp
+        src/Renderer/GraphicsResourceManager.h
+        src/Renderer/Structures.h
+        src/Renderer/RenderPipelineLayer.cpp
+        src/Renderer/RenderPipelineLayer.h
 )
+
+#[[
+add_custom_command(TARGET Engine PRE_BUILD
+        WORKING_DIRECTORY  ${CMAKE_SOURCE_DIR}
+        COMMAND ${CMAKE_COMMAND} -P "${CMAKE_SOURCE_DIR}/Engine/src/Resource/FileNames.cmake")
+]]
+#file(REMOVE ${CMAKE_SOURCE_DIR}/Engine/src/Resource/FilesNames.hpp)
+include("${CMAKE_SOURCE_DIR}/Engine/src/Resource/FileNames.cmake")
+
+#[[add_custom_command(TARGET Engine POST_BUILD
+        WORKING_DIRECTORY  ${CMAKE_SOURCE_DIR}
+        COMMAND ${CMAKE_COMMAND} -P "${CMAKE_SOURCE_DIR}/Engine/src/Resource/FileNames-Clean.cmake")]]
 
 target_compile_definitions(Engine PRIVATE AJ_EXPORT)
 target_compile_definitions(Engine PRIVATE AJ_LOG_IMGUI)
