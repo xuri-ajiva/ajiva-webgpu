@@ -21,10 +21,15 @@ namespace Ajiva::Renderer {
         AJ_RegisterCreated(this, typeid(Buffer));
     }
 
-    void Buffer::UpdateBufferData(const void *data, uint64_t updateSize = INVALID_ID_U64) {
-        if(updateSize == INVALID_ID_U64)
+    void Buffer::UpdateBufferData(const void *data, uint64_t updateSize, uint64_t offset) {
+        if (updateSize == INVALID_ID_U64)
             updateSize = this->size;
-        m_queue->writeBuffer(buffer, 0, data, ALIGN_AT(updateSize, 4));
+        if (offset + updateSize > this->size) {
+            PLOG_WARNING << "Buffer::UpdateBufferData: updateSize + offset > this->size: " << updateSize << " + "
+                         << offset << " > " << this->size;
+            updateSize = this->size - offset;
+        }
+        m_queue->writeBuffer(buffer, offset, data, ALIGN_AT(updateSize, 4));
     }
 
 } // Ajiva::Renderer
