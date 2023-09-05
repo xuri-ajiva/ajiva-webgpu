@@ -45,9 +45,9 @@ namespace Ajiva {
         camera = CreateRef<Renderer::FreeCamera>(eventSystem);
         Renderer::RenderPipelineLayer pipeline(context, loader, graphicsResourceManager,
                                                [this]() -> glm::mat4x4 { //todo make more compact
-                                        return camera->viewMatrix;
-                                    }, [this]() -> glm::mat4x4 {
-                    return glm::perspective(glm::radians(45.0f), projection.aspect, 0.1f, 100.0f);
+                                                   return camera->viewMatrix;
+                                               }, [this]() -> glm::mat4x4 {
+                    return projection.Build();
                 }, [this]() -> glm::vec3 {
                     return camera->position;
                 });
@@ -64,6 +64,8 @@ namespace Ajiva {
             layer->Attached();
         }
         projection.aspect = static_cast<float>(window->GetWidth()) / static_cast<float>(window->GetHeight());
+        projection.far = 1000.0f;
+        projection.near = 0.01f;
         BuildSwapChain();
 
         //AJ_INFO("Startup Time: %s", clock.Total());
@@ -96,6 +98,7 @@ namespace Ajiva {
             lastStats = newStats;
         }
 
+        //todo seperate render and update thread?
         for (const auto &layer: layers) {
             if (!layer->IsEnabled()) continue;
             layer->Update(frameInfo);
@@ -109,15 +112,26 @@ namespace Ajiva {
             window->RequestClose();
         }
 
+        //todo render to texture and blend into nextTexture
+        auto renderTarget = Core::RenderTarget{
+                .texture = nextTexture,
+                .extent  = {static_cast<uint32_t>(window->GetWidth()), static_cast<uint32_t>(window->GetHeight()),
+                            1},//todo need accurate size for multithreading
+        };
+
         for (const auto &layer: layers) {
             if (!layer->IsEnabled()) continue;
-            //todo render to texture and blend into nextTexture
-            auto renderTarget = Core::RenderTarget{
-                    .texture = nextTexture,
-                    .extent  = {static_cast<uint32_t>(window->GetWidth()), static_cast<uint32_t>(window->GetHeight()),
-                                1},//todo need accurate size for multithreading
-            };
+            layer->BeforeRender(frameInfo, renderTarget);
+        }
+
+        for (const auto &layer: layers) {
+            if (!layer->IsEnabled()) continue;
             layer->Render(frameInfo, renderTarget);
+        }
+
+        for (const auto &layer: layers) {
+            if (!layer->IsEnabled()) continue;
+            layer->AfterRender(frameInfo, renderTarget);
         }
 
         nextTexture.release();

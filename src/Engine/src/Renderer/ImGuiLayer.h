@@ -21,6 +21,10 @@ namespace Ajiva::Renderer {
 
         void Detached() override;
 
+        void BeforeRender(Core::UpdateInfo frameInfo, Core::RenderTarget target) override;
+
+        void AfterRender(Core::UpdateInfo frameInfo, Core::RenderTarget target) override;
+
         void Render(Core::UpdateInfo updateInfo, Core::RenderTarget target) override;
 
     private:

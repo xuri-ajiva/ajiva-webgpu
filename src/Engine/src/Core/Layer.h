@@ -30,8 +30,12 @@ namespace Ajiva::Core {
         virtual bool Attached() { return false; }
         virtual void Detached() {}
 
+        virtual void BeforeRender(UpdateInfo frameInfo, RenderTarget target) {}
         virtual void Render(UpdateInfo frameInfo, RenderTarget target) {}
+        virtual void AfterRender(UpdateInfo frameInfo, RenderTarget target) {}
+        virtual void BeforeUpdate(UpdateInfo frameInfo) {}
         virtual void Update(UpdateInfo frameInfo) {}
+        virtual void AfterUpdate(UpdateInfo frameInfo) {}
 
         [[nodiscard]] inline const std::string &Name() const {
             return name;

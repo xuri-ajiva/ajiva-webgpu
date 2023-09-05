@@ -51,14 +51,17 @@ namespace Ajiva::Renderer {
         ImGui_ImplWGPU_Shutdown();
     }
 
-    void ImGuiLayer::Render(Core::UpdateInfo updateInfo, Core::RenderTarget target) {
-        Layer::Render(updateInfo, target);
-
+    void ImGuiLayer::BeforeRender(Core::UpdateInfo frameInfo, Core::RenderTarget target) {
+        Layer::BeforeRender(frameInfo, target);
         //TODO io.DisplaySize = ImVec2((float) window.GetWidth(), (float) window.GetHeight());
         ImGui_ImplWGPU_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
+    }
 
+
+    void ImGuiLayer::Render(Core::UpdateInfo updateInfo, Core::RenderTarget target) {
+        Layer::Render(updateInfo, target);
         if (show_demo_window)
             ImGui::ShowDemoWindow(&show_demo_window);
         if (app_log_open)
@@ -69,7 +72,10 @@ namespace Ajiva::Renderer {
 
         if (show_camera_window)
             ShowCameraWindow();
+    }
 
+    void ImGuiLayer::AfterRender(Core::UpdateInfo frameInfo, Core::RenderTarget target) {
+        Layer::AfterRender(frameInfo, target);
         ImGui::Render();
 
         RenderIntern(target);
@@ -144,6 +150,7 @@ namespace Ajiva::Renderer {
         }
         return false;
     }
+
     bool ImGuiLayer::OnKey(AJ_EVENT_PARAMETERS) {
         ImGuiIO &io = ImGui::GetIO();
         if (io.WantCaptureKeyboard) {
