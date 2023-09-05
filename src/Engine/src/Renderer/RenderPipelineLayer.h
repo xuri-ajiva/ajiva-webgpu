@@ -10,6 +10,7 @@
 #include "Resource/Loader.h"
 #include "Renderer/BindGroupBuilder.h"
 #include "GraphicsResourceManager.h"
+#include "Model.h"
 
 namespace Ajiva {
     class Application;
@@ -31,6 +32,7 @@ namespace Ajiva::Renderer {
                   viewMatrix(std::move(viewMatrix)), projectionMatrix(std::move(projectionMatrix)),
                   worldPos(std::move(worldPos)) {
             bindGroupBuilder = BindGroupBuilder(context, loader);
+            instanceModelManager = CreateRef<InstanceModelManager>(context);
         }
 
         ~RenderPipelineLayer() override = default;
@@ -77,14 +79,8 @@ namespace Ajiva::Renderer {
         Ref<Ajiva::Renderer::Buffer> uniformBuffer = nullptr;
         Ref<Ajiva::Renderer::Buffer> lightningUniformBuffer = nullptr;
 
+        std::vector<Ref<ModelInstance>> modelInstances;
 
-        std::vector<Ajiva::Renderer::VertexData> vertexData;
-        std::vector<Ajiva::Renderer::InstanceData> instanceData;
-        std::vector<u16> indexData;
-
-        Ref<Ajiva::Renderer::Buffer> vertexBuffer = nullptr;
-        Ref<Ajiva::Renderer::Buffer> instanceBuffer = nullptr;
-        //Ref<Ajiva::Renderer::Buffer> indexBuffer;
-
+        Ref<InstanceModelManager> instanceModelManager = nullptr;
     };
 } // PBR

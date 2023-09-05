@@ -6,6 +6,8 @@
 
 #include "Resource/FilesNames.hpp"
 #include "glm/ext.hpp"
+#include "imgui.h"
+#include <random>
 
 namespace Ajiva::Renderer {
     bool Renderer::RenderPipelineLayer::Attached() {
@@ -30,20 +32,7 @@ namespace Ajiva::Renderer {
             };
         }
 
-        {
-            constexpr int NumInstances = 100;
-            instanceData.reserve(NumInstances * NumInstances);
-            for (int i = 0; i < NumInstances; ++i) {
-                for (int j = 0; j < NumInstances; ++j) {
-                    instanceData.push_back(
-                            {
-                                    .modelMatrix = glm::translate(glm::mat4(1.0f),
-                                                                  glm::vec3(i * 2.1f, j * 2.1f, 1.0f)),
-                                    .color = glm::vec4(1.0f, 0.0f, 1.0f / static_cast<float>(NumInstances), 1.0f),
-                            });
-                }
-            }
-        }
+
 
         // Vertex fetch
         // We now have 2 attributes
@@ -125,30 +114,36 @@ namespace Ajiva::Renderer {
                                                            depthTexture->textureFormat);
 
         }
+        auto plane = graphicsResourceManager->GetModel(Ajiva::Resource::Files::Objects::cube_obj);
 
-        bool success = loader->LoadGeometryFromObj(Ajiva::Resource::Files::Objects::plane_obj, vertexData,
-                                                   indexData);
-        if (!success) {
-            std::cerr << "Could not load geometry!" << std::endl;
-            return false;
+        //auto model = instanceModelManager->CreateInstance(plane);
+
+/*        model-> instanceBuffer = context->CreateFilledBuffer(model->instanceData.data(),
+                                                             model->instanceData.size() * sizeof(Ajiva::Renderer::InstanceData),
+                                                             wgpu::BufferUsage::CopyDst | wgpu::BufferUsage::Vertex,
+                                                             "Instance Buffer");*/
+
+        {
+            constexpr int NumInstances = 100;
+            //instanceData.reserve(NumInstances * NumInstances);
+            for (int i = 0; i < NumInstances; ++i) {
+                for (int j = 0; j < NumInstances; ++j) {
+                    Scope<ModelInstance> data = instanceModelManager->CreateInstance(plane);
+/*                    instanceData.push_back(
+                            {
+                                    .modelMatrix = glm::translate(glm::mat4(1.0f),
+                                                                  glm::vec3(i * 2.1f, j * 2.1f, 1.0f)),
+                                    .color = glm::vec4(1.0f, 0.0f, 1.0f / static_cast<float>(NumInstances), 1.0f),
+                            });*/
+                    data->model->instanceData[data->instanceIndex] = {
+                            .modelMatrix = glm::translate(glm::mat4(1.0f),
+                                                          glm::vec3(i * 2.1f, j * 2.1f, 1.0f)),
+                            .color = glm::vec4(1.0f, 0.0f, 1.0f / static_cast<float>(NumInstances), 1.0f),
+                    };
+                    modelInstances.push_back(std::move(data));
+                }
+            }
         }
-
-
-        vertexBuffer = context->CreateFilledBuffer(vertexData.data(),
-                                                   vertexData.size() * sizeof(Ajiva::Renderer::VertexData),
-                                                   wgpu::BufferUsage::CopyDst | wgpu::BufferUsage::Vertex,
-                                                   "Vertex Buffer");
-        /*auto indexBuffer = context->CreateFilledBuffer(indexData.data(), indexData.size() * sizeof(uint16_t),
-                                                      wgpu::BufferUsage::CopyDst | wgpu::BufferUsage::Index,
-                                                      "Index Buffer");*/
-
-
-        instanceBuffer = context->CreateFilledBuffer(instanceData.data(),
-                                                     instanceData.size() * sizeof(Ajiva::Renderer::InstanceData),
-                                                     wgpu::BufferUsage::CopyDst | wgpu::BufferUsage::Vertex,
-                                                     "Instance Buffer");
-
-
         return true;
     }
 
@@ -172,26 +167,89 @@ namespace Ajiva::Renderer {
 
 
         wgpu::CommandEncoder encoder = context->CreateCommandEncoder();
-
         wgpu::RenderPassEncoder renderPass = context->CreateRenderPassEncoder(encoder, target.texture,
                                                                               depthTexture->view,
                                                                               {0.4, 0.4, 0.4, 1.0});
         renderPass.setPipeline(*renderPipeline);
-        renderPass.setVertexBuffer(0, vertexBuffer->buffer, 0, vertexBuffer->size);
-        renderPass.setVertexBuffer(1, instanceBuffer->buffer, 0, instanceBuffer->size);
-        /* renderPass.setIndexBuffer(indexBuffer->buffer, wgpu::IndexFormat::Uint16, 0,
-                                   indexData.size() * sizeof(uint16_t));*/
-        renderPass.setBindGroup(0, *bindGroupBuilder.bindGroup, 0, nullptr);
-        //renderPass.drawIndexed(indexData.size(), 1, 0, 0, 0);
-        renderPass.draw(vertexBuffer->size / sizeof(Ajiva::Renderer::VertexData), instanceData.size(), 0, 0);
+        renderPass.setBindGroup(0, *bindGroupBuilder.bindGroup, 0, nullptr);//todo move to mesh/Instance??
+
+        instanceModelManager->Render(renderPass);
 
         renderPass.end();
-
         context->SubmitEncoder(encoder);
+
+        if (!ImGui::Begin("Planes")) {
+            ImGui::End();
+            return;
+        }
+
+        std::random_device rd;
+        std::mt19937 gen(rd());
+        std::uniform_real_distribution<float> pos(0.0f, 100.0f);
+        std::uniform_real_distribution<float> color(0.0f, 1.0f);
+
+        if (ImGui::Button("Randomize Positions")) {
+            for (auto &modelInstance: modelInstances) {
+                modelInstance->data().modelMatrix = glm::translate(
+                        glm::mat4(1.0f),
+                        glm::vec3(pos(gen), pos(gen), pos(gen)));
+            }
+        }
+        ImGui::SameLine();
+        if(ImGui::Button("Random Rotation")){
+            for (auto &modelInstance: modelInstances) {
+                modelInstance->data().modelMatrix = glm::rotate(
+                        modelInstance->data().modelMatrix,
+                        glm::radians(pos(gen)),
+                        glm::vec3(pos(gen), pos(gen), pos(gen)));
+            }
+        }
+        ImGui::SameLine();
+        if(ImGui::Button("Random Scale")){
+            for (auto &modelInstance: modelInstances) {
+                auto scale = color(gen);
+                modelInstance->data().modelMatrix[0][0] = scale;
+                modelInstance->data().modelMatrix[1][1] = scale;
+                modelInstance->data().modelMatrix[2][2] = scale;
+            }
+        }
+
+        if (ImGui::Button("Randomize Colors")) {
+            for (auto &modelInstance: modelInstances) {
+                modelInstance->data().color = glm::vec4(color(gen), color(gen), color(gen), 1.0f);
+            }
+        }
+        ImGui::SameLine();
+        if (ImGui::Button("Gradient Colors")) {
+            for (auto &modelInstance: modelInstances) {
+                modelInstance->data().color = glm::vec4(
+                        modelInstance->data().modelMatrix[3][0] / 100.0f,
+                        modelInstance->data().modelMatrix[3][1] / 100.0f,
+                        modelInstance->data().modelMatrix[3][2] / 100.0f,
+                        1.0f);
+            }
+        }
+
+        ImGuiListClipper clipper;
+
+        clipper.Begin(modelInstances.size());
+        while (clipper.Step()) {
+            for (int i = clipper.DisplayStart; i < clipper.DisplayEnd; ++i) {
+                auto &modelInstance = modelInstances[i];
+                ImGui::PushID(modelInstance->instanceIndex);
+                ImGui::DragFloat3("Position", &modelInstance->data()
+                        .modelMatrix[3][0], 0.1f);
+                ImGui::ColorEdit3("Color", &modelInstance->data().color[0]);
+                ImGui::PopID();
+            }
+        }
+        ImGui::End();
+
     }
 
     void Renderer::RenderPipelineLayer::Update(Core::UpdateInfo frameInfo) {
         Layer::Update(frameInfo);
+        instanceModelManager->Update();
         bindGroupBuilder.UpdateBindings();
 
 
