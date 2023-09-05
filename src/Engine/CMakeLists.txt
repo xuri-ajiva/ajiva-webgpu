@@ -47,6 +47,8 @@ add_library(Engine STATIC
         src/Renderer/Structures.h
         src/Renderer/RenderPipelineLayer.cpp
         src/Renderer/RenderPipelineLayer.h
+        src/Renderer/Model.cpp
+        src/Renderer/Model.h
 )
 
 #[[
