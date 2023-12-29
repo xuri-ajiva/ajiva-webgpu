@@ -89,7 +89,12 @@ namespace Ajiva::Renderer
         Ref<Ajiva::Renderer::Buffer> lightningUniformBuffer = nullptr;
 
         std::vector<Ref<ModelInstance>> modelInstances;
+        int i = 0, j = 0, k = 0;
 
         Ref<InstanceModelManager> instanceModelManager = nullptr;
+
+        void CreateInstance(const Ref<Model> &model, const int NumInstances, float i, float j, float k);
+
+        void Ui();
     };
 } // PBR

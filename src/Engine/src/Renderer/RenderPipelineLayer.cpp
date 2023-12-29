@@ -126,30 +126,19 @@ namespace Ajiva::Renderer
                                                                      wgpu::BufferUsage::CopyDst | wgpu::BufferUsage::Vertex,
                                                                      "Instance Buffer");*/
 
-        {
-            constexpr int NumInstances = 100;
-            //instanceData.reserve(NumInstances * NumInstances);
-            for (int i = 0; i < NumInstances; ++i)
-            {
-                for (int j = 0; j < NumInstances; ++j)
-                {
-                    Scope<ModelInstance> data = instanceModelManager->CreateInstance(plane);
-                    /*                    instanceData.push_back(
-                                                {
-                                                        .modelMatrix = glm::translate(glm::mat4(1.0f),
-                                                                                      glm::vec3(i * 2.1f, j * 2.1f, 1.0f)),
-                                                        .color = glm::vec4(1.0f, 0.0f, 1.0f / static_cast<float>(NumInstances), 1.0f),
-                                                });*/
-                    data->model->instanceData[data->instanceIndex] = {
-                        .modelMatrix = glm::translate(glm::mat4(1.0f),
-                                                      glm::vec3(i * 2.1f, j * 2.1f, 1.0f)),
-                        .color = glm::vec4(1.0f, 0.0f, 1.0f / static_cast<float>(NumInstances), 1.0f),
-                    };
-                    modelInstances.push_back(std::move(data));
-                }
-            }
-        }
         return true;
+    }
+
+    void
+    Renderer::RenderPipelineLayer::CreateInstance(const Ref<Model> &model, const int NumInstances, float i, float j,
+                                                  float k) {
+        Scope<ModelInstance> data = instanceModelManager->CreateInstance(model);
+        data->data() = {
+                .modelMatrix = translate(mat4(1.0f),
+                                         vec3(i * 2.1f, j * 2.1f, k * 2.1f)),
+                .color = vec4(1.0f, 0.0f, 1.0f / static_cast<float>(NumInstances), 1.0f),
+        };
+        modelInstances.push_back(std::move(data));
     }
 
     void Renderer::RenderPipelineLayer::CheckTarget(Core::RenderTarget target)
@@ -187,11 +176,21 @@ namespace Ajiva::Renderer
         renderPass.end();
         context->SubmitEncoder(encoder);
 
-        if (!ImGui::Begin("Planes"))
+        Ui();
+    }
+
+    void Renderer::RenderPipelineLayer::Ui() {
+        static bool pOpen = true;
+        if (!pOpen) return;
+        if (!ImGui::Begin("Planes", &pOpen))
         {
             ImGui::End();
             return;
         }
+
+        ImGui::Text("Instances: %s", get_formatted_size_1000(modelInstances.size()));
+        ImGui::Text("Triangles: %s", get_formatted_size_1000(
+                modelInstances.size() * modelInstances.data()->operator->()->model->model->vertexData.size() / 3));
 
         std::random_device rd;
         std::mt19937 gen(rd());
@@ -202,9 +201,9 @@ namespace Ajiva::Renderer
         {
             for (auto& modelInstance : modelInstances)
             {
-                modelInstance->data().modelMatrix = glm::translate(
-                    glm::mat4(1.0f),
-                    glm::vec3(pos(gen), pos(gen), pos(gen)));
+                modelInstance->data().modelMatrix = translate(
+                    mat4(1.0f),
+                    vec3(pos(gen), pos(gen), pos(gen)));
             }
         }
         ImGui::SameLine();
@@ -214,8 +213,8 @@ namespace Ajiva::Renderer
             {
                 modelInstance->data().modelMatrix = glm::rotate(
                     modelInstance->data().modelMatrix,
-                    glm::radians(pos(gen)),
-                    glm::vec3(pos(gen), pos(gen), pos(gen)));
+                    radians(pos(gen)),
+                    vec3(pos(gen), pos(gen), pos(gen)));
             }
         }
         ImGui::SameLine();
@@ -234,7 +233,7 @@ namespace Ajiva::Renderer
         {
             for (auto& modelInstance : modelInstances)
             {
-                modelInstance->data().color = glm::vec4(color(gen), color(gen), color(gen), 1.0f);
+                modelInstance->data().color = vec4(color(gen), color(gen), color(gen), 1.0f);
             }
         }
         ImGui::SameLine();
@@ -242,7 +241,7 @@ namespace Ajiva::Renderer
         {
             for (auto& modelInstance : modelInstances)
             {
-                modelInstance->data().color = glm::vec4(
+                modelInstance->data().color = vec4(
                     modelInstance->data().modelMatrix[3][0] / 100.0f,
                     modelInstance->data().modelMatrix[3][1] / 100.0f,
                     modelInstance->data().modelMatrix[3][2] / 100.0f,
@@ -274,7 +273,6 @@ namespace Ajiva::Renderer
         instanceModelManager->Update();
         bindGroupBuilder.UpdateBindings();
 
-
         uniforms.time = frameInfo.TotalTime;
         /*        uniforms.modelMatrix = glm::rotate(mat4x4(1.0), uniforms.time, vec3(0.0, 0.0, 1.0)) *
                                        glm::translate(mat4x4(1.0), vec3(0.5, 0.0, 0.0)) *
@@ -285,5 +283,22 @@ namespace Ajiva::Renderer
         uniformBuffer->UpdateBufferData(&uniforms, sizeof(Ajiva::Renderer::UniformData));
 
         lightningUniformBuffer->UpdateBufferData(&lightningUniform, sizeof(Ajiva::Renderer::LightningUniform));
+
+        constexpr int NumInstances = 400;
+        auto plane = graphicsResourceManager->GetModel(Ajiva::Resource::Files::Objects::cube_obj);
+        int a = 0;
+        {
+            //instanceData.reserve(NumInstances * NumInstances);
+            for (; i < NumInstances; ++i) {
+                for (; j < NumInstances; ++j) {
+                    for (; k < NumInstances; ++k) {
+                        if (++a > 10000) return;
+                        CreateInstance(plane, NumInstances, i, j, k);
+                    }
+                    k = 0;
+                }
+                j = 0;
+            }
+        }
     }
 }
