@@ -182,7 +182,7 @@ static_assert(sizeof(f64) == 8, "Expected f64 to be 8 bytes.");
 #else
 
 /** @brief Inline qualifier */
-#define AJ_INLINE static inline
+#define AJ_INLINE inline
 
 /** @brief No-inline qualifier */
 #define AJ_NOINLINE
@@ -201,6 +201,53 @@ static_assert(sizeof(f64) == 8, "Expected f64 to be 8 bytes.");
 #define MEGABYTES(amount) ((amount) * 1000ULL * 1000ULL)
 /** @brief Gets the number of bytes from amount of kilobytes (KB) (1000) */
 #define KILOBYTES(amount) ((amount) * 1000ULL)
+
+AJ_INLINE const char *get_unit_for_size_1024(u64 size_bytes, f64 *out_amount) {
+    if (size_bytes >= GIBIBYTES(1)) {
+        *out_amount = (f64) size_bytes / GIBIBYTES(1);
+        return "GiB";
+    } else if (size_bytes >= MEBIBYTES(1)) {
+        *out_amount = (f64) size_bytes / MEBIBYTES(1);
+        return "MiB";
+    } else if (size_bytes >= KIBIBYTES(1)) {
+        *out_amount = (f64) size_bytes / KIBIBYTES(1);
+        return "KiB";
+    } else {
+        *out_amount = (f32) size_bytes;
+        return "B";
+    }
+}
+AJ_INLINE const char *get_unit_for_size_1000(u64 size_bytes, f64 *out_amount) {
+    if (size_bytes >= GIGABYTES(1)) {
+        *out_amount = (f64) size_bytes / GIGABYTES(1);
+        return "G";
+    } else if (size_bytes >= MEGABYTES(1)) {
+        *out_amount = (f64) size_bytes / MEGABYTES(1);
+        return "M";
+    } else if (size_bytes >= KILOBYTES(1)) {
+        *out_amount = (f64) size_bytes / KILOBYTES(1);
+        return "K";
+    } else {
+        *out_amount = (f32) size_bytes;
+        return "B";
+    }
+}
+
+AJ_INLINE const char *get_formatted_size_1024(u64 size_bytes) {
+    f64 out_amount;
+    const char *unit = get_unit_for_size_1024(size_bytes, &out_amount);
+    static char buffer[64];
+    snprintf(buffer, sizeof(buffer), "%.2f %s", out_amount, unit);
+    return buffer;
+}
+
+AJ_INLINE const char *get_formatted_size_1000(u64 size_bytes) {
+    f64 out_amount;
+    const char *unit = get_unit_for_size_1000(size_bytes, &out_amount);
+    static char buffer[64];
+    snprintf(buffer, sizeof(buffer), "%.2f %s", out_amount, unit);
+    return buffer;
+}
 
 AJ_INLINE u64 get_aligned(u64 operand, u64 granularity)
 {
