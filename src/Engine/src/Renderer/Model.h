@@ -27,7 +27,7 @@ namespace Ajiva::Renderer
 
         Model() = default;
 
-    private:
+    public:
         u64 id;
 
         std::vector<Ajiva::Renderer::VertexData> vertexData;
@@ -45,7 +45,7 @@ namespace Ajiva::Renderer
         std::vector<Ajiva::Renderer::InstanceData> instanceData;
         std::vector<bool> modified;
 
-        Ref<Ajiva::Renderer::Buffer> instanceBuffer = nullptr;
+        Ref<Ajiva::Renderer::Buffer> instanceBuffer = nullptr; //todo allow for more than one buffer bc buffer limit is 268435456 (256MiB)
     };
 
     struct ModelInstance
@@ -116,6 +116,8 @@ namespace Ajiva::Renderer
         static void RenderModel(wgpu::RenderPassEncoder renderPass, const Ref<InstanceModelData>& model)
         {
             renderPass.setVertexBuffer(0, model->model->vertexBuffer->buffer, 0, model->model->vertexBuffer->size);
+
+            //TODO       foreach instance buffer -> set -> draw
             renderPass.setVertexBuffer(1, model->instanceBuffer->buffer, 0, model->instanceBuffer->size);
             /* renderPass.setIndexBuffer(model->model->indexBuffer->buffer, wgpu::IndexFormat::Uint16, 0,
                                        model->indexData.size() * sizeof(uint16_t));*/
