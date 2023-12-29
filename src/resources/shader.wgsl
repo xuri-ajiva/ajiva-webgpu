@@ -1,4 +1,3 @@
-
 struct UniformData {
     projectionMatrix: mat4x4f,
     viewMatrix: mat4x4f,
@@ -63,7 +62,7 @@ fn vs_main(in: VertexInput, instance: InstanceInput) -> VertexOutput {
     out.worldPosition = worldPosition.xyz;
     out.viewDirection = u.worldPos - worldPosition.xyz;
     out.normal = (model_matrix * vec4f(in.normal, 0.0)).xyz;
-    out.color = in.color;
+    out.color = in.color * instance.instanceColor.xyz;
     out.uv = in.uv;
     return out;
 }

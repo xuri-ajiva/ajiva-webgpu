@@ -50,7 +50,6 @@ namespace Ajiva::Renderer
 
         wgpu::DeviceDescriptor deviceDesc;
         deviceDesc.label = "My Device"; // anything works here, that's your call
-        deviceDesc.requiredFeaturesCount = 0; // we do not require any specific feature
         deviceDesc.requiredLimits = &requiredLimits;
         deviceDesc.defaultQueue.label = "The default queue";
         device = CreateScope<wgpu::Device>(adapter->requestDevice(deviceDesc));
@@ -79,7 +78,7 @@ namespace Ajiva::Renderer
                         << "QueueWorkDoneStatus: " << magic_enum::enum_name<WGPUQueueWorkDoneStatus>(status).data();
         });
 
-        //swapChainFormat = surface->getPreferredFormat(*adapter);
+        swapChainFormat = surface->getPreferredFormat(*adapter);
         if (swapChainFormat == wgpu::TextureFormat::Undefined)
             swapChainFormat = wgpu::TextureFormat::BGRA8Unorm;
         PLOG_INFO << "SwapChainFormat: " << magic_enum::enum_name<WGPUTextureFormat>(swapChainFormat).data();
@@ -156,7 +155,6 @@ namespace Ajiva::Renderer
 
         renderPassDesc.depthStencilAttachment = &depthStencilAttachment;
 
-        renderPassDesc.timestampWriteCount = 0;
         renderPassDesc.timestampWrites = nullptr;
         return encoder.beginRenderPass(renderPassDesc);
     }
