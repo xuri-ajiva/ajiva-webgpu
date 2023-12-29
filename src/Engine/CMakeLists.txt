@@ -45,6 +45,10 @@ add_library(Engine STATIC
         src/Renderer/GraphicsResourceManager.cpp
         src/Renderer/GraphicsResourceManager.h
         src/Renderer/Structures.h
+        src/Renderer/PBR/RenderPipeline.cpp
+        src/Renderer/PBR/RenderPipeline.h
+        src/Renderer/PBR/Material.cpp
+        src/Renderer/PBR/Material.h
         src/Renderer/RenderPipelineLayer.cpp
         src/Renderer/RenderPipelineLayer.h
         src/Renderer/Model.cpp
