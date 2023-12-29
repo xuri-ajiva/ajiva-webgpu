@@ -1,6 +1,3 @@
-
-
-
 #include <iostream>
 
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
@@ -21,7 +18,8 @@
 #include "Resource/ResourceManager.h"
 
 
-int main() {
+int main()
+{
     using namespace Ajiva;
     using namespace Ajiva::Renderer;
     using namespace Ajiva::Resource;
@@ -29,23 +27,24 @@ int main() {
     Ajiva::Platform::PlatformSystem::Init();
 
     {
-
         ApplicationConfig config = {
-                .WindowConfig = {
-                        .Width = 1920,
-                        .Height = 1080,
-                        .DedicatedThread = false,
-                        .Name = "Ajiva Engine"
-                },
-                .ResourceDirectory = RESOURCE_DIR
+            .WindowConfig = {
+                .Width = 1920,
+                .Height = 1080,
+                .DedicatedThread = false,
+                .Name = "Ajiva Engine"
+            },
+            .ResourceDirectory = RESOURCE_DIR
         };
         Application app(config);
-        if (!app.Init()) {
+        if (!app.Init())
+        {
             PLOG_FATAL << "Failed to Init Application";
             return -1;
         }
 
-        while (app.IsRunning()) {
+        while (app.IsRunning())
+        {
             app.Frame();
         }
 

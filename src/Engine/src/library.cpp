@@ -2,7 +2,7 @@
 
 #include <iostream>
 
-AJ_API void hello() {
+AJ_API void hello()
+{
     std::cout << "Hello, World!" << std::endl;
 }
-

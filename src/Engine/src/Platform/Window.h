@@ -17,9 +17,10 @@
 #include "glm/vec2.hpp"
 
 
-namespace Ajiva::Platform {
-
-    struct WindowConfig {
+namespace Ajiva::Platform
+{
+    struct WindowConfig
+    {
         i32 X = 200;
         i32 Y = 100;
         u32 Width = 800;
@@ -28,7 +29,8 @@ namespace Ajiva::Platform {
         std::string Name;
     };
 
-    class Window {
+    class Window
+    {
     public:
         static bool Init();
 
@@ -36,31 +38,36 @@ namespace Ajiva::Platform {
 
         Window() = default;
 
-        explicit Window(const WindowConfig &config, Ref<Core::EventSystem> eventSystem);
+        explicit Window(const WindowConfig& config, Ref<Core::EventSystem> eventSystem);
 
         ~Window();
 
         [[nodiscard]] std::function<wgpu::Surface(wgpu::Instance)> CreateSurfaceFunk();
 
-        [[nodiscard]] inline GLFWwindow *GetWindow() const {
+        [[nodiscard]] inline GLFWwindow* GetWindow() const
+        {
             return window;
         }
 
-        [[nodiscard]] inline int GetWidth() const {
+        [[nodiscard]] inline int GetWidth() const
+        {
             return config.Width;
         }
 
-        [[nodiscard]] inline int GetHeight() const {
+        [[nodiscard]] inline int GetHeight() const
+        {
             return config.Height;
         }
 
         [[nodiscard]] bool IsClosed();
 
-        inline void RequestClose() {
+        inline void RequestClose()
+        {
             running = false;
         }
 
-        static void glfw_error_callback(int error, const char *description) {
+        static void glfw_error_callback(int error, const char* description)
+        {
             PLOG_ERROR << "GLFW Error: " << error << " " << description;
         }
 
@@ -71,7 +78,7 @@ namespace Ajiva::Platform {
     private:
         WindowConfig config;
         bool running = false;
-        GLFWwindow *window = nullptr;
+        GLFWwindow* window = nullptr;
         bool m_cloesed = false;
         Ref<Core::EventSystem> eventSystem;
         glm::vec<2, i32> prevMousePos = {0, 0};

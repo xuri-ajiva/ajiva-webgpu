@@ -10,17 +10,21 @@
 #include "Resource/FilesNames.hpp"
 #include "Renderer/RenderPipelineLayer.h"
 
-namespace Ajiva {
-
+namespace Ajiva
+{
     Application::~Application() = default;
 
-    Application::Application(ApplicationConfig config) : config(std::move(config)) {}
+    Application::Application(ApplicationConfig config) : config(std::move(config))
+    {
+    }
 
-    inline void onMouseButtonDown(AJ_EVENT_PARAMETERS) {
+    inline void onMouseButtonDown(AJ_EVENT_PARAMETERS)
+    {
         PLOG_INFO << "onMouseButtonDown";
     }
 
-    bool Application::Init() {
+    bool Application::Init()
+    {
         Core::SetupLogger();
         PLOG_INFO << "Hello, World!";
 
@@ -44,13 +48,17 @@ namespace Ajiva {
         //ImGui first to block camera input
         camera = CreateRef<Renderer::FreeCamera>(eventSystem);
         Renderer::RenderPipelineLayer pipeline(context, loader, graphicsResourceManager,
-                                               [this]() -> glm::mat4x4 { //todo make more compact
+                                               [this]() -> glm::mat4x4
+                                               {
+                                                   //todo make more compact
                                                    return camera->viewMatrix;
-                                               }, [this]() -> glm::mat4x4 {
-                    return projection.Build();
-                }, [this]() -> glm::vec3 {
-                    return camera->position;
-                });
+                                               }, [this]() -> glm::mat4x4
+                                               {
+                                                   return projection.Build();
+                                               }, [this]() -> glm::vec3
+                                               {
+                                                   return camera->position;
+                                               });
         auto pipelineRef = CreateRef<Renderer::RenderPipelineLayer>(pipeline);
         Renderer::ImGuiLayer imGuiLayer(window, context, eventSystem, pipelineRef, camera);
         camera->Init();
@@ -59,7 +67,8 @@ namespace Ajiva {
         layers.push_back(pipelineRef);
         layers.push_back(CreateRef<Renderer::ImGuiLayer>(imGuiLayer));
 
-        for (const auto &layer: layers) {
+        for (const auto& layer : layers)
+        {
             if (!layer->IsEnabled()) continue;
             layer->Attached();
         }
@@ -74,32 +83,38 @@ namespace Ajiva {
         return true;
     }
 
-    bool Application::IsRunning() {
+    bool Application::IsRunning()
+    {
         return !window->IsClosed();
     }
 
-    void Application::Frame() {
+    void Application::Frame()
+    {
         using glm::mat4x4;
         using glm::vec4;
         using glm::vec3;
 
         clock.Update();
-        Core::UpdateInfo frameInfo = {clock.Ticks(),
-                                      std::chrono::duration_cast<std::chrono::duration<float>>(clock.Delta()).count(),
-                                      std::chrono::duration_cast<std::chrono::duration<float>>(clock.Total()).count()};
+        Core::UpdateInfo frameInfo = {
+            clock.Ticks(),
+            std::chrono::duration_cast<std::chrono::duration<float>>(clock.Delta()).count(),
+            std::chrono::duration_cast<std::chrono::duration<float>>(clock.Total()).count()
+        };
 
         //update "camera"
         camera->Update();
 
         static std::string lastStats;
         auto newStats = graphicsResourceManager->Statistics();
-        if (newStats != lastStats) {
+        if (newStats != lastStats)
+        {
             PLOG_INFO << newStats;
             lastStats = newStats;
         }
 
         //todo seperate render and update thread?
-        for (const auto &layer: layers) {
+        for (const auto& layer : layers)
+        {
             if (!layer->IsEnabled()) continue;
             layer->Update(frameInfo);
         }
@@ -107,29 +122,35 @@ namespace Ajiva {
         wgpu::TextureView nextTexture = swapChain->getCurrentTextureView();
         //std::cout << "nextTexture: " << nextTexture << std::endl;
 
-        if (!nextTexture) {
+        if (!nextTexture)
+        {
             std::cerr << "Cannot acquire next swap chain texture" << std::endl;
             window->RequestClose();
         }
 
         //todo render to texture and blend into nextTexture
         auto renderTarget = Core::RenderTarget{
-                .texture = nextTexture,
-                .extent  = {static_cast<uint32_t>(window->GetWidth()), static_cast<uint32_t>(window->GetHeight()),
-                            1},//todo need accurate size for multithreading
+            .texture = nextTexture,
+            .extent = {
+                static_cast<uint32_t>(window->GetWidth()), static_cast<uint32_t>(window->GetHeight()),
+                1
+            }, //todo need accurate size for multithreading
         };
 
-        for (const auto &layer: layers) {
+        for (const auto& layer : layers)
+        {
             if (!layer->IsEnabled()) continue;
             layer->BeforeRender(frameInfo, renderTarget);
         }
 
-        for (const auto &layer: layers) {
+        for (const auto& layer : layers)
+        {
             if (!layer->IsEnabled()) continue;
             layer->Render(frameInfo, renderTarget);
         }
 
-        for (const auto &layer: layers) {
+        for (const auto& layer : layers)
+        {
             if (!layer->IsEnabled()) continue;
             layer->AfterRender(frameInfo, renderTarget);
         }
@@ -138,8 +159,10 @@ namespace Ajiva {
         swapChain->present();
     }
 
-    void Application::Finish() {
-        for (const auto &layer: layers) {
+    void Application::Finish()
+    {
+        for (const auto& layer : layers)
+        {
             if (!layer->IsEnabled()) continue;
             layer->Detached();
         }
@@ -147,8 +170,10 @@ namespace Ajiva {
         swapChain->release();
     }
 
-    bool Application::OnResize(Ajiva::Core::EventCode code, void *sender, const Ajiva::Core::EventContext &event) {
-        if (event.framebufferSize.width == 0 || event.framebufferSize.height == 0) {
+    bool Application::OnResize(Ajiva::Core::EventCode code, void* sender, const Ajiva::Core::EventContext& event)
+    {
+        if (event.framebufferSize.width == 0 || event.framebufferSize.height == 0)
+        {
             PLOG_INFO << "Framebuffer size is 0!";
             return false;
         }
@@ -158,24 +183,26 @@ namespace Ajiva {
         BuildDepthTexture();
 
         //update "camera"
-/*        uniforms.projectionMatrix = glm::perspective(glm::radians(45.0f), static_cast<float>(event.windowRect.width) /
-                                                                          static_cast<float>(event.windowRect.height),
-                                                     0.1f, 100.0f);*/
+        /*        uniforms.projectionMatrix = glm::perspective(glm::radians(45.0f), static_cast<float>(event.windowRect.width) /
+                                                                                  static_cast<float>(event.windowRect.height),
+                                                             0.1f, 100.0f);*/
         projection.aspect = static_cast<float>(event.windowRect.width) / static_cast<float>(event.windowRect.height);
-//TODO??        uniformBuffer->UpdateBufferData(&uniforms, sizeof(Ajiva::Renderer::UniformData));
+        //TODO??        uniformBuffer->UpdateBufferData(&uniforms, sizeof(Ajiva::Renderer::UniformData));
         return false;
     }
 
-    void Application::BuildSwapChain() {
-        if (swapChain) {
+    void Application::BuildSwapChain()
+    {
+        if (swapChain)
+        {
             swapChain->release();
         }
 
         swapChain = context->CreateSwapChain(window->GetWidth(), window->GetHeight());
     }
 
-    void Application::BuildDepthTexture() {
+    void Application::BuildDepthTexture()
+    {
         //the ref should auto release
-
     }
 }

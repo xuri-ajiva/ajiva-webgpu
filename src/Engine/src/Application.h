@@ -15,14 +15,16 @@
 #include "Core/ThreadPool.h"
 #include "Renderer/GraphicsResourceManager.h"
 
-namespace Ajiva {
-    struct ApplicationConfig {
+namespace Ajiva
+{
+    struct ApplicationConfig
+    {
         Ajiva::Platform::WindowConfig WindowConfig;
         std::string ResourceDirectory;
     };
 
-    class AJ_API Application {
-
+    class AJ_API Application
+    {
     public:
         explicit Application(ApplicationConfig config);
 
@@ -36,7 +38,7 @@ namespace Ajiva {
 
         ~Application();
 
-        bool OnResize(Ajiva::Core::EventCode code, void *sender, const Ajiva::Core::EventContext &event);
+        bool OnResize(Ajiva::Core::EventCode code, void* sender, const Ajiva::Core::EventContext& event);
 
     private:
         ApplicationConfig config = {};
@@ -55,8 +57,8 @@ namespace Ajiva {
         std::vector<Ref<Ajiva::Core::IListener>> events;
 
         Ref<Core::ThreadPool<>> threadPool;
-    private:
 
+    private:
         void BuildSwapChain();
 
         void BuildDepthTexture();

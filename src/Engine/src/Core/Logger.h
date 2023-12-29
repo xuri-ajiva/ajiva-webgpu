@@ -5,8 +5,9 @@
 
 #include "defines.h"
 
-namespace Ajiva::Core {
-    AJ_API void ShowAppLog(bool *p_open);
+namespace Ajiva::Core
+{
+    AJ_API void ShowAppLog(bool* p_open);
 
     AJ_API void SetupLogger();
 }

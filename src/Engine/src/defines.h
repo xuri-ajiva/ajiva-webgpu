@@ -57,7 +57,8 @@ typedef int b32;
 typedef bool b8;
 
 /** @brief A range, typically of memory */
-typedef struct range {
+typedef struct range
+{
     /** @brief The offset in bytes. */
     u64 offset;
     /** @brief The size in bytes. */
@@ -201,11 +202,13 @@ static_assert(sizeof(f64) == 8, "Expected f64 to be 8 bytes.");
 /** @brief Gets the number of bytes from amount of kilobytes (KB) (1000) */
 #define KILOBYTES(amount) ((amount) * 1000ULL)
 
-AJ_INLINE u64 get_aligned(u64 operand, u64 granularity) {
+AJ_INLINE u64 get_aligned(u64 operand, u64 granularity)
+{
     return ((operand + (granularity - 1)) & ~(granularity - 1));
 }
 
-AJ_INLINE range get_aligned_range(u64 offset, u64 size, u64 granularity) {
+AJ_INLINE range get_aligned_range(u64 offset, u64 size, u64 granularity)
+{
     return static_cast<range>(range{get_aligned(offset, granularity), get_aligned(size, granularity)});
 }
 
@@ -213,22 +216,26 @@ AJ_INLINE range get_aligned_range(u64 offset, u64 size, u64 granularity) {
 #define AJ_MAX(x, y) (x > y ? x : y)
 #define ALIGN_AT(value, X) ((value + X - 1) & ~(X - 1))
 
-namespace Ajiva {
+namespace Ajiva
+{
     // from  https://github.com/TheCherno/Hazel/blob/5e20b232b749a8f1339e32074c254c44d7c9c263/Hazel/src/Hazel/Core/Base.h
-    template<typename T>
+    template <typename T>
     using Scope = std::unique_ptr<T>;
 
-    template<typename T, typename ... Args>
-    constexpr Scope<T> CreateScope(Args &&... args) {
+    template <typename T, typename... Args>
+    constexpr Scope<T> CreateScope(Args&&... args)
+    {
         return std::make_unique<T>(std::forward<Args>(args)...);
     }
 
-    template<typename T>
+    template <typename T>
     using Ref = std::shared_ptr<T>;
 
-    template<typename T, typename ... Args>
-    constexpr Ref<T> CreateRef(Args &&... args) {
+    template <typename T, typename... Args>
+    constexpr Ref<T> CreateRef(Args&&... args)
+    {
         return std::make_shared<T>(std::forward<Args>(args)...);
     }
 }
+
 constexpr float PI = 3.14159265358979323846f;

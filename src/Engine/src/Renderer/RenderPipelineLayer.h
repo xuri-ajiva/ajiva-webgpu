@@ -12,25 +12,31 @@
 #include "GraphicsResourceManager.h"
 #include "Model.h"
 
-namespace Ajiva {
+namespace Ajiva
+{
     class Application;
 }
-namespace Ajiva::Renderer {
+
+namespace Ajiva::Renderer
+{
     using namespace glm;
 
-    class RenderPipelineLayer : public Core::Layer {
+    class RenderPipelineLayer : public Core::Layer
+    {
         friend Ajiva::Application;
+
     public:
         RenderPipelineLayer() = default;
 
-        RenderPipelineLayer(const Ref<Renderer::GpuContext> &context, const Ref<Resource::Loader> &loader,
+        RenderPipelineLayer(const Ref<Renderer::GpuContext>& context, const Ref<Resource::Loader>& loader,
                             Ref<Renderer::GraphicsResourceManager> graphicsResourceManager,
                             std::function<mat4x4()> viewMatrix, std::function<mat4x4()> projectionMatrix,
                             std::function<vec3()> worldPos)
-                : Layer("RenderPipeline"), context(context), loader(loader),
-                  graphicsResourceManager(std::move(graphicsResourceManager)),
-                  viewMatrix(std::move(viewMatrix)), projectionMatrix(std::move(projectionMatrix)),
-                  worldPos(std::move(worldPos)) {
+            : Layer("RenderPipeline"), context(context), loader(loader),
+              graphicsResourceManager(std::move(graphicsResourceManager)),
+              viewMatrix(std::move(viewMatrix)), projectionMatrix(std::move(projectionMatrix)),
+              worldPos(std::move(worldPos))
+        {
             bindGroupBuilder = BindGroupBuilder(context, loader);
             instanceModelManager = CreateRef<InstanceModelManager>(context);
         }
@@ -45,8 +51,10 @@ namespace Ajiva::Renderer {
 
         void CheckTarget(Core::RenderTarget target);
 
-        void CreateDepthTexture(const Extent3D &size) {
-            if (size.width < 1 || size.height < 1) {
+        void CreateDepthTexture(const Extent3D& size)
+        {
+            if (size.width < 1 || size.height < 1)
+            {
                 PLOG_WARNING << "Depth Texture size is 0!";
                 return;
             }
@@ -60,6 +68,7 @@ namespace Ajiva::Renderer {
         void Update(Core::UpdateInfo frameInfo) override;
 
         Ajiva::Renderer::LightningUniform lightningUniform = {};
+
     private:
         Ref<Renderer::GpuContext> context;
         Ref<Resource::Loader> loader; //todo Remove

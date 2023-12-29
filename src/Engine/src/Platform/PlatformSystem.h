@@ -6,8 +6,10 @@
 
 #include "Platform/Window.h"
 
-namespace Ajiva::Platform {
-    class AJ_API PlatformSystem {
+namespace Ajiva::Platform
+{
+    class AJ_API PlatformSystem
+    {
     public:
         static bool Init();
 

@@ -19,11 +19,12 @@
 #define AJ_THREAD_POOL_LENGTH 1024
 #endif
 
-namespace Ajiva::Core {
-
-    class AJ_API IThreadPool {
+namespace Ajiva::Core
+{
+    class AJ_API IThreadPool
+    {
     public:
-        virtual void QueueWork(const std::function<void()> &func, const std::function<void()> &callback = nullptr) = 0;
+        virtual void QueueWork(const std::function<void()>& func, const std::function<void()>& callback = nullptr) = 0;
 
         AJ_INLINE virtual bool IsWorking() = 0;
 
@@ -32,70 +33,86 @@ namespace Ajiva::Core {
         AJ_INLINE virtual bool IsEmpty() = 0;
     };
 
-    template<u64 N = AJ_THREAD_POOL_LENGTH, u64 T = 8>
-    class AJ_API ThreadPool : public IThreadPool {
-        struct Worker {
-            ThreadPool *pool;
+    template <u64 N = AJ_THREAD_POOL_LENGTH, u64 T = 8>
+    class AJ_API ThreadPool : public IThreadPool
+    {
+        struct Worker
+        {
+            ThreadPool* pool;
             std::thread thread;
             u64 index = 0;
             bool working = false;
         };
 
-        struct Work {
+        struct Work
+        {
             std::function<void()> func;
             std::function<void()> callback;
         };
+
     public:
+        ThreadPool() : ThreadPool(true)
+        {
+        }
 
-        ThreadPool() : ThreadPool(true) {}
-
-        explicit ThreadPool(bool start) {
+        explicit ThreadPool(bool start)
+        {
             head = 0;
             tail = 0;
             shutdown = false;
             started = false;
             waitFunc = [this]() { return !IsEmpty() || shutdown; };
-            if (start) {
+            if (start)
+            {
                 Start();
             }
         }
 
-        void Start() {
+        void Start()
+        {
             if (started) return;
             started = true;
-            for (u64 i = 0; i < T; ++i) {
+            for (u64 i = 0; i < T; ++i)
+            {
                 auto state = &states[i];
                 state->pool = this;
                 state->index = i;
                 state->working = false;
-                state->thread = std::thread([state]() {
+                state->thread = std::thread([state]()
+                {
                     state->pool->WorkerLoop(state);
                 });
             }
         }
 
-        ~ThreadPool() {
+        ~ThreadPool()
+        {
             Shutdown();
         }
 
-        void Shutdown() {
+        void Shutdown()
+        {
             if (shutdown) return;
             {
                 std::unique_lock<std::mutex> lock(mutex);
                 shutdown = true;
             }
             cv.notify_all();
-            for (u64 i = 0; i < T; ++i) {
+            for (u64 i = 0; i < T; ++i)
+            {
                 auto state = &states[i];
-                if (state->thread.joinable()) {
+                if (state->thread.joinable())
+                {
                     state->thread.join();
                 }
             }
         }
 
-        void WorkerLoop(ThreadPool::Worker *state) {
+        void WorkerLoop(ThreadPool::Worker* state)
+        {
             PLOG_DEBUG << "WorkerLoop: " << state->index;
-            while (!shutdown) {
+            while (!shutdown)
+            {
                 Work work;
                 {
                     if (shutdown) break;
@@ -108,18 +125,21 @@ namespace Ajiva::Core {
                 }
                 work.func();
                 state->working = false;
-                if (work.callback) {
+                if (work.callback)
+                {
                     work.callback();
                 }
             }
             PLOG_DEBUG << "WorkerLoop: " << state->index << " end";
         }
 
-        void QueueWork(const std::function<void()> &func, const std::function<void()> &callback = nullptr) override {
+        void QueueWork(const std::function<void()>& func, const std::function<void()>& callback = nullptr) override
+        {
             if (shutdown) return;
             std::unique_lock<std::mutex> lock(mutex);
             if (shutdown) return;
-            while (IsFull()) {
+            while (IsFull())
+            {
                 cv.wait(lock, [this]() { return !IsFull() || shutdown; });
             }
             auto i = this->head++;
@@ -129,15 +149,18 @@ namespace Ajiva::Core {
             cv.notify_one();
         }
 
-        AJ_INLINE bool IsWorking() override {
+        AJ_INLINE bool IsWorking() override
+        {
             return tail < head;
         }
 
-        AJ_INLINE bool IsFull() override {
+        AJ_INLINE bool IsFull() override
+        {
             return tail - head >= N;
         }
 
-        AJ_INLINE bool IsEmpty() override {
+        AJ_INLINE bool IsEmpty() override
+        {
             return tail == head;
         }
 
@@ -155,6 +178,5 @@ namespace Ajiva::Core {
         std::mutex mutex;
         std::condition_variable cv;
     };
-
 } // Ajiva
 // Core

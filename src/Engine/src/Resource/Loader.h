@@ -11,27 +11,36 @@
 #include "tiny_obj_loader.h"
 #include "Core/ThreadPool.h"
 
-namespace Ajiva::Resource {
-    class AJ_API Loader {
+namespace Ajiva::Resource
+{
+    class AJ_API Loader
+    {
     public:
         Loader() = default;
+
         explicit Loader(std::filesystem::path resourceDirectory, Ref<Core::IThreadPool> threadPool)
-        : resourceDirectory(std::move(resourceDirectory)), threadPool(std::move(threadPool)) {}
+            : resourceDirectory(std::move(resourceDirectory)), threadPool(std::move(threadPool))
+        {
+        }
 
-        std::string LoadFile(const std::filesystem::path &path, bool throwOnFail = true);
+        std::string LoadFile(const std::filesystem::path& path, bool throwOnFail = true);
 
 
-        bool LoadGeometryFromSimpleTxt(const std::filesystem::path &resourcePath, std::vector<Renderer::VertexData> &pointData,
-                                       std::vector<uint16_t> &indexData);
+        bool LoadGeometryFromSimpleTxt(const std::filesystem::path& resourcePath,
+                                       std::vector<Renderer::VertexData>& pointData,
+                                       std::vector<uint16_t>& indexData);
 
-        bool LoadGeometryFromObj(const std::filesystem::path &resourcePath, std::vector<Renderer::VertexData> &pointData,
-                                 std::vector<uint16_t> &indexData);
+        bool LoadGeometryFromObj(const std::filesystem::path& resourcePath,
+                                 std::vector<Renderer::VertexData>& pointData,
+                                 std::vector<uint16_t>& indexData);
 
         Ref<Renderer::Texture>
-        LoadTexture(const std::filesystem::path &resourcePath, const Renderer::GpuContext &context, uint32_t mipLevelCount = 0);
+        LoadTexture(const std::filesystem::path& resourcePath, const Renderer::GpuContext& context,
+                    uint32_t mipLevelCount = 0);
 
         Ref<Renderer::Texture>
-        LoadTextureAsync(const std::filesystem::path &resourcePath, const Renderer::GpuContext &context, uint32_t mipLevelCount = 0);
+        LoadTextureAsync(const std::filesystem::path& resourcePath, const Renderer::GpuContext& context,
+                         uint32_t mipLevelCount = 0);
 
     private:
         std::filesystem::path resourceDirectory;

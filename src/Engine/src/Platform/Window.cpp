@@ -6,29 +6,39 @@
 #include "Core/Logger.h"
 
 
-namespace Ajiva::Platform {
-    Window::Window(const WindowConfig &config, Ref<Core::EventSystem> eventSystem) : config(config),
-                                                                                     eventSystem(eventSystem) {
+namespace Ajiva::Platform
+{
+    Window::Window(const WindowConfig& config, Ref<Core::EventSystem> eventSystem) : config(config),
+        eventSystem(eventSystem)
+    {
     }
 
-    Window::~Window() {
-        if (window) {
+    Window::~Window()
+    {
+        if (window)
+        {
             PLOG_INFO << "Destroying window!";
-            try {
+            try
+            {
                 glfwDestroyWindow(window);
-            } catch (...) {
+            }
+            catch (...)
+            {
                 PLOG_WARNING << "Failed to destroy window!";
             }
         }
     }
 
-    std::function<wgpu::Surface(wgpu::Instance)> Window::CreateSurfaceFunk() {
-        return [this](wgpu::Instance instance) -> wgpu::Surface {
+    std::function<wgpu::Surface(wgpu::Instance)> Window::CreateSurfaceFunk()
+    {
+        return [this](wgpu::Instance instance) -> wgpu::Surface
+        {
             return glfwGetWGPUSurface(instance, window);
         };
     }
 
-    bool Window::CreateWindow() {
+    bool Window::CreateWindow()
+    {
         glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
         glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
         window = glfwCreateWindow(static_cast<i32>(config.Width), static_cast<i32>(config.Height), config.Name.c_str(),
@@ -42,15 +52,20 @@ namespace Ajiva::Platform {
                 return;   \
             auto ev = windowClass->eventSystem;
 
-        glfwSetFramebufferSizeCallback(window, [](GLFWwindow *pWindow, int width, int height) {
+        glfwSetFramebufferSizeCallback(window, [](GLFWwindow* pWindow, int width, int height)
+        {
             GLFW_USER_PTR_CHECK()
             windowClass->config.Width = static_cast<u32>(width);
             windowClass->config.Height = static_cast<u32>(height);
             if (ev->FireEvent(Core::EventCode::FramebufferResize, windowClass, {
-                    .framebufferSize = {.width = windowClass->config.Width, .height = windowClass->config.Height}}))
+                                  .framebufferSize = {
+                                      .width = windowClass->config.Width, .height = windowClass->config.Height
+                                  }
+                              }))
                 return;
         });
-        glfwSetKeyCallback(window, [](GLFWwindow *pWindow, int key, int scancode, int action, int mods) {
+        glfwSetKeyCallback(window, [](GLFWwindow* pWindow, int key, int scancode, int action, int mods)
+        {
             GLFW_USER_PTR_CHECK()
             auto eventCore = Core::EventCode::None;
             if (action == GLFW_PRESS)
@@ -62,7 +77,8 @@ namespace Ajiva::Platform {
                               {.key = {.key = key, .scancode = scancode, .action = action, .mods = mods}}))
                 return;
         });
-        glfwSetMouseButtonCallback(window, [](GLFWwindow *pWindow, int button, int action, int mods) {
+        glfwSetMouseButtonCallback(window, [](GLFWwindow* pWindow, int button, int action, int mods)
+        {
             GLFW_USER_PTR_CHECK()
             auto eventCore = Core::EventCode::None;
             if (action == GLFW_PRESS)
@@ -73,34 +89,51 @@ namespace Ajiva::Platform {
             f64 x, y;
             glfwGetCursorPos(pWindow, &x, &y);
             if (ev->FireEvent(eventCore, windowClass,
-                              {.mouse = {.click = {.x = static_cast<i32>(x), .y = static_cast<i32>(y), .button = button, .mods = mods}}}))
+                              {
+                                  .mouse = {
+                                      .click = {
+                                          .x = static_cast<i32>(x), .y = static_cast<i32>(y), .button = button,
+                                          .mods = mods
+                                      }
+                                  }
+                              }))
                 return;
         });
-        glfwSetCursorPosCallback(window, [](GLFWwindow *pWindow, f64 x, f64 y) {
+        glfwSetCursorPosCallback(window, [](GLFWwindow* pWindow, f64 x, f64 y)
+        {
             GLFW_USER_PTR_CHECK()
-            Core::EventContext context = {.mouse = {.move = {
-                    .x = static_cast<i32>(x),
-                    .y = static_cast<i32>(y),
-                    .dx = static_cast<i32>(x - windowClass->prevMousePos.x),
-                    .dy = static_cast<i32>(y - windowClass->prevMousePos.y)
-            }}};
+            Core::EventContext context = {
+                .mouse = {
+                    .move = {
+                        .x = static_cast<i32>(x),
+                        .y = static_cast<i32>(y),
+                        .dx = static_cast<i32>(x - windowClass->prevMousePos.x),
+                        .dy = static_cast<i32>(y - windowClass->prevMousePos.y)
+                    }
+                }
+            };
             windowClass->prevMousePos.x = context.mouse.move.x;
             windowClass->prevMousePos.y = context.mouse.move.y;
             if (ev->FireEvent(Core::EventCode::MouseMove, windowClass, context))
                 return;
         });
-        glfwSetScrollCallback(window, [](GLFWwindow *pWindow, f64 xOffset, f64 yOffset) {
+        glfwSetScrollCallback(window, [](GLFWwindow* pWindow, f64 xOffset, f64 yOffset)
+        {
             GLFW_USER_PTR_CHECK()
             if (ev->FireEvent(Core::EventCode::MouseScroll, windowClass, {
-                    .mouse = {.wheel={
-                            .xOffset = xOffset,
-                            .yOffset = yOffset
-                    }}}))
+                                  .mouse = {
+                                      .wheel = {
+                                          .xOffset = xOffset,
+                                          .yOffset = yOffset
+                                      }
+                                  }
+                              }))
                 return;
         });
 #undef GLFW_USER_PTR_CHECK
 
-        if (!window) {
+        if (!window)
+        {
             PLOG_ERROR << "Could not create GLFW window!";
             glfwTerminate();
             return false;
@@ -108,45 +141,57 @@ namespace Ajiva::Platform {
         return true;
     }
 
-    void Window::Create() {
-        if (config.DedicatedThread) {
-            auto thread = std::thread([this]() {
-                if (!CreateWindow()) {
+    void Window::Create()
+    {
+        if (config.DedicatedThread)
+        {
+            auto thread = std::thread([this]()
+            {
+                if (!CreateWindow())
+                {
                     m_cloesed = true;
                     return;
                 }
 
-                while (!running) {
+                while (!running)
+                {
                     // do not freeze the window
                     glfwPollEvents();
                 }
 
-                while (!glfwWindowShouldClose(window)) {
+                while (!glfwWindowShouldClose(window))
+                {
                     glfwPollEvents();
                     //glfwWaitEventsTimeout(0.01);
 
-                    if (!running) {
+                    if (!running)
+                    {
                         glfwSetWindowShouldClose(window, GLFW_TRUE);
                     }
                 }
                 m_cloesed = true;
             });
             thread.detach();
-            while (!window && !m_cloesed) {
+            while (!window && !m_cloesed)
+            {
                 std::this_thread::sleep_for(std::chrono::milliseconds(10));
             }
             PLOG_INFO << "Window created!";
-        } else {
+        }
+        else
+        {
             if (!CreateWindow())
                 return;
         }
     }
 
-    void Window::Run() {
+    void Window::Run()
+    {
         running = true;
     }
 
-    bool Window::IsClosed() {
+    bool Window::IsClosed()
+    {
         if (config.DedicatedThread)
             return m_cloesed;
         if (!running)
@@ -155,12 +200,16 @@ namespace Ajiva::Platform {
         return glfwWindowShouldClose(window);
     }
 
-    bool Window::Init() {
+    bool Window::Init()
+    {
         glfwSetErrorCallback(glfw_error_callback);
-        if (!glfwInit()) {
+        if (!glfwInit())
+        {
             PLOG_ERROR << "Could not initialize GLFW!";
             return false;
-        } else {
+        }
+        else
+        {
             PLOG_VERBOSE << "GLFW initialized, IsGLFWInitialized: " << IsGLFWInitialized;
             IsGLFWInitialized = true;
             PLOG_INFO << "GLFW initialized, IsGLFWInitialized: " << IsGLFWInitialized;
@@ -168,7 +217,8 @@ namespace Ajiva::Platform {
         return true;
     }
 
-    void Window::Shutdown() {
+    void Window::Shutdown()
+    {
         if (IsGLFWInitialized)
             glfwTerminate();
     }

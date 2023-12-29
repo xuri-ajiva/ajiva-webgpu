@@ -7,16 +7,20 @@
 #include "defines.h"
 #include "glm/glm.hpp"
 
-namespace Ajiva::Renderer {
+namespace Ajiva::Renderer
+{
     using namespace glm;
 
-    struct VertexData { //move to resource
+    struct VertexData
+    {
+        //move to resource
         glm::vec3 position;
         glm::vec3 normal;
         glm::vec3 color;
         glm::vec2 uv;
 
-        VertexData(std::istringstream &s) {
+        VertexData(std::istringstream& s)
+        {
             s >> position.x;
             s >> position.y;
             s >> position.z;
@@ -31,12 +35,15 @@ namespace Ajiva::Renderer {
         }
 
         VertexData(glm::vec3 position, glm::vec3 normal, glm::vec3 color) : position(position), normal(normal),
-                                                                            color(color) {}
+                                                                            color(color)
+        {
+        }
 
         VertexData() = default;
     };
 
-    struct UniformData {
+    struct UniformData
+    {
         glm::mat4x4 projectionMatrix;
         glm::mat4x4 viewMatrix;
         glm::vec3 worldPos;
@@ -45,21 +52,27 @@ namespace Ajiva::Renderer {
         float gamma;
         float padding[1];
     };
+
     static_assert(sizeof(UniformData) % 16 == 0);
 
-    struct InstanceData {
+    struct InstanceData
+    {
         glm::mat4x4 modelMatrix;
         glm::vec4 color;
     };
+
     static_assert(sizeof(InstanceData) % 16 == 0);
 
-    struct Light {
+    struct Light
+    {
         glm::vec4 position;
         glm::vec4 color;
     };
+
     static_assert(sizeof(Light) == 32);
 
-    struct LightningUniform {
+    struct LightningUniform
+    {
         Light lights[4];
         glm::vec4 ambient;
         float hardness;
@@ -67,19 +80,22 @@ namespace Ajiva::Renderer {
         float ks;
         float padding;
     };
+
     static_assert(sizeof(LightningUniform) % 16 == 0);
 
-    struct Material {
+    struct Material
+    {
         glm::vec3 baseColor;
         float metallic;
-        float specular;         // Specular reflection, calculated from metallic
+        float specular; // Specular reflection, calculated from metallic
         float roughness;
-        float ior;              // Index of Refraction
+        float ior; // Index of Refraction
 
         glm::vec3 emission;
-        float alpha;            // Opacity (1.0 - fully opaque, 0.0 - fully transparent)
-        float sheen;            // Sheen intensity
+        float alpha; // Opacity (1.0 - fully opaque, 0.0 - fully transparent)
+        float sheen; // Sheen intensity
         //glm::vec3 anisotropic;  // Anisotropic reflection factor
     };
+
     static_assert(sizeof(Material) % 16 == 0);
 }

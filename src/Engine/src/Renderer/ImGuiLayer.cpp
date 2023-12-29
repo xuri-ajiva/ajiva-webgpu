@@ -10,11 +10,13 @@
 #include "imgui_impl_wgpu.h"
 #include "RenderPipelineLayer.h"
 
-namespace Ajiva::Renderer {
+namespace Ajiva::Renderer
+{
     ImGuiLayer::ImGuiLayer(Ref<Platform::Window> window, Ref<GpuContext> context, Ref<Core::EventSystem> eventSystem,
                            Ref<Renderer::RenderPipelineLayer> pipeline, Ref<Renderer::FreeCamera> camara)
-            : Layer("ImGuiLayer"), window(std::move(window)), context(std::move(context)),
-              eventSystem(std::move(eventSystem)), pipeline(std::move(pipeline)), camara(std::move(camara)) {
+        : Layer("ImGuiLayer"), window(std::move(window)), context(std::move(context)),
+          eventSystem(std::move(eventSystem)), pipeline(std::move(pipeline)), camara(std::move(camara))
+    {
         //catch events as soon as possible
         this->events.push_back(this->eventSystem->Add(Core::MouseButtonDown, this, &ImGuiLayer::OnMouse));
         this->events.push_back(this->eventSystem->Add(Core::MouseButtonUp, this, &ImGuiLayer::OnMouse));
@@ -26,32 +28,37 @@ namespace Ajiva::Renderer {
 
     static inline void ImGuiColorStyle();
 
-    bool ImGuiLayer::Attached() {
+    bool ImGuiLayer::Attached()
+    {
         IMGUI_CHECKVERSION();
         ImGui::CreateContext();
-        [[maybe_unused]] ImGuiIO &io = ImGui::GetIO();
+        [[maybe_unused]] ImGuiIO& io = ImGui::GetIO();
         //ImGui::StyleColorsDark();
         ImGuiColorStyle();
         //ImGui::StyleColorsLight();
         // Setup Platform/Renderer backends
-        if (!ImGui_ImplGlfw_InitForOther(window->GetWindow(), true)) {
+        if (!ImGui_ImplGlfw_InitForOther(window->GetWindow(), true))
+        {
             PLOG_ERROR << "ImGui_ImplGlfw_InitForOther failed";
             return false;
         }
-        if (!ImGui_ImplWGPU_Init(*context->device, 3, context->swapChainFormat, WGPUTextureFormat_Undefined)) {
+        if (!ImGui_ImplWGPU_Init(*context->device, 3, context->swapChainFormat, WGPUTextureFormat_Undefined))
+        {
             PLOG_ERROR << "ImGui_ImplWGPU_Init failed";
             return false;
         }
         return true;
     }
 
-    void ImGuiLayer::Detached() {
+    void ImGuiLayer::Detached()
+    {
         //todo: static init / shutdown?
         ImGui_ImplGlfw_Shutdown();
         ImGui_ImplWGPU_Shutdown();
     }
 
-    void ImGuiLayer::BeforeRender(Core::UpdateInfo frameInfo, Core::RenderTarget target) {
+    void ImGuiLayer::BeforeRender(Core::UpdateInfo frameInfo, Core::RenderTarget target)
+    {
         Layer::BeforeRender(frameInfo, target);
         //TODO io.DisplaySize = ImVec2((float) window.GetWidth(), (float) window.GetHeight());
         ImGui_ImplWGPU_NewFrame();
@@ -60,7 +67,8 @@ namespace Ajiva::Renderer {
     }
 
 
-    void ImGuiLayer::Render(Core::UpdateInfo updateInfo, Core::RenderTarget target) {
+    void ImGuiLayer::Render(Core::UpdateInfo updateInfo, Core::RenderTarget target)
+    {
         Layer::Render(updateInfo, target);
         if (show_demo_window)
             ImGui::ShowDemoWindow(&show_demo_window);
@@ -74,22 +82,24 @@ namespace Ajiva::Renderer {
             ShowCameraWindow();
     }
 
-    void ImGuiLayer::AfterRender(Core::UpdateInfo frameInfo, Core::RenderTarget target) {
+    void ImGuiLayer::AfterRender(Core::UpdateInfo frameInfo, Core::RenderTarget target)
+    {
         Layer::AfterRender(frameInfo, target);
         ImGui::Render();
 
         RenderIntern(target);
     }
 
-    void ImGuiLayer::ShowCameraWindow() {
+    void ImGuiLayer::ShowCameraWindow()
+    {
         ImGui::Begin("Camera", &show_camera_window);
         ImGui::SeparatorText("Translation");
-        ImGui::DragFloat3("Position", (float *) &camara->position, .05f, -10.0f, 10.0f);
-        ImGui::InputFloat3("Acceleration", (float *) &camara->acceleration, "%.3f", ImGuiInputTextFlags_ReadOnly);
-        ImGui::InputFloat3("Front", (float *) &camara->front, "%.3f", ImGuiInputTextFlags_ReadOnly);
-        ImGui::InputFloat3("Up", (float *) &camara->up, "%.3f", ImGuiInputTextFlags_ReadOnly);
+        ImGui::DragFloat3("Position", (float*)&camara->position, .05f, -10.0f, 10.0f);
+        ImGui::InputFloat3("Acceleration", (float*)&camara->acceleration, "%.3f", ImGuiInputTextFlags_ReadOnly);
+        ImGui::InputFloat3("Front", (float*)&camara->front, "%.3f", ImGuiInputTextFlags_ReadOnly);
+        ImGui::InputFloat3("Up", (float*)&camara->up, "%.3f", ImGuiInputTextFlags_ReadOnly);
         ImGui::SeparatorText("Rotation");
-        ImGui::InputFloat2("Angles", (float *) &camara->angles, "%.3f", ImGuiInputTextFlags_ReadOnly);
+        ImGui::InputFloat2("Angles", (float*)&camara->angles, "%.3f", ImGuiInputTextFlags_ReadOnly);
         ImGui::SeparatorText("Mouse");
         ImGui::DragFloat("Mouse Sensitivity", &camara->mouseSensitivity, .01f, 0.0f, 10.0f);
         ImGui::DragFloat("Speed", &camara->speed, .005f, 0.0f, 5.0f, "%.3f", ImGuiSliderFlags_Logarithmic);
@@ -107,7 +117,8 @@ namespace Ajiva::Renderer {
         ImGui::End();
     }
 
-    void ImGuiLayer::ShowLightningWindow() {
+    void ImGuiLayer::ShowLightningWindow()
+    {
         auto pUniform = &pipeline->lightningUniform;
 
         ImGui::Begin("Lightning", &show_lightning_window);
@@ -121,45 +132,52 @@ namespace Ajiva::Renderer {
         ImGui::Checkbox("With Drag and Drop", &drag_and_drop);
         ImGui::Checkbox("With Options Menu", &options_menu);
         ImGuiColorEditFlags misc_flags = (drag_and_drop ? 0 : ImGuiColorEditFlags_NoDragDrop) |
-                                         (alpha_half_preview ? ImGuiColorEditFlags_AlphaPreviewHalf
-                                                             : (alpha_preview ? ImGuiColorEditFlags_AlphaPreview : 0)) |
-                                         (options_menu ? 0 : ImGuiColorEditFlags_NoOptions);
+            (alpha_half_preview
+                 ? ImGuiColorEditFlags_AlphaPreviewHalf
+                 : (alpha_preview ? ImGuiColorEditFlags_AlphaPreview : 0)) |
+            (options_menu ? 0 : ImGuiColorEditFlags_NoOptions);
         ImGui::SeparatorText("Inline color editor");
-        ImGui::ColorEdit4("Ambient", (float *) &pUniform->ambient, misc_flags);
+        ImGui::ColorEdit4("Ambient", (float*)&pUniform->ambient, misc_flags);
         ImGui::DragFloat("Hardness", &pUniform->hardness, 0.05, 0.0001f, 128.0f, "%.3f", ImGuiSliderFlags_Logarithmic);
         ImGui::SliderFloat("Kd", &pUniform->kd, 0.0f, 2.0f);
         ImGui::SliderFloat("Ks", &pUniform->ks, 0.0f, 2.0f);
-        for (int i = 0; i < glm::countof(pUniform->lights); ++i) {
+        for (int i = 0; i < glm::countof(pUniform->lights); ++i)
+        {
             ImGui::SeparatorText(("Light " + std::to_string(i)).c_str());
             ImGui::ColorEdit3(("Color##C" + std::to_string(i)).c_str(),
-                              (float *) &pUniform->lights[i].color, misc_flags);
+                              (float*)&pUniform->lights[i].color, misc_flags);
             ImGui::DragFloat(("Intensity##C" + std::to_string(i)).c_str(),
-                             (float *) &pUniform->lights[i].color.w, .05f, 0.0f, 10.0f);
+                             (float*)&pUniform->lights[i].color.w, .05f, 0.0f, 10.0f);
             ImGui::DragFloat3(("Position##C" + std::to_string(i)).c_str(),
-                              (float *) &pUniform->lights[i].position, .05f, -10.0f, 10.0f);
+                              (float*)&pUniform->lights[i].position, .05f, -10.0f, 10.0f);
         }
 
         ImGui::End();
     }
 
 
-    bool ImGuiLayer::OnMouse(AJ_EVENT_PARAMETERS) {
-        ImGuiIO &io = ImGui::GetIO();
-        if (io.WantCaptureMouse) {
+    bool ImGuiLayer::OnMouse(AJ_EVENT_PARAMETERS)
+    {
+        ImGuiIO& io = ImGui::GetIO();
+        if (io.WantCaptureMouse)
+        {
             return true; //stop propagation
         }
         return false;
     }
 
-    bool ImGuiLayer::OnKey(AJ_EVENT_PARAMETERS) {
-        ImGuiIO &io = ImGui::GetIO();
-        if (io.WantCaptureKeyboard) {
+    bool ImGuiLayer::OnKey(AJ_EVENT_PARAMETERS)
+    {
+        ImGuiIO& io = ImGui::GetIO();
+        if (io.WantCaptureKeyboard)
+        {
             return true; //stop propagation
         }
         return false;
     }
 
-    void ImGuiLayer::RenderIntern(Core::RenderTarget target) {
+    void ImGuiLayer::RenderIntern(Core::RenderTarget target)
+    {
         wgpu::CommandEncoder encoder = context->CreateCommandEncoder();
 
         wgpu::RenderPassDescriptor renderPassDesc{};
@@ -181,8 +199,9 @@ namespace Ajiva::Renderer {
     }
 
 
-    static inline void ImGuiColorStyle() {
-        ImGuiStyle &style = ImGui::GetStyle();
+    static inline void ImGuiColorStyle()
+    {
+        ImGuiStyle& style = ImGui::GetStyle();
         style.Colors[ImGuiCol_Text] = ImVec4(1.00f, 1.00f, 1.00f, 1.00f);
         style.Colors[ImGuiCol_TextDisabled] = ImVec4(0.50f, 0.50f, 0.50f, 1.00f);
         style.Colors[ImGuiCol_WindowBg] = ImVec4(0.13f, 0.14f, 0.15f, 1.00f);
@@ -235,5 +254,4 @@ namespace Ajiva::Renderer {
         style.Colors[ImGuiCol_ModalWindowDimBg] = ImVec4(0.80f, 0.80f, 0.80f, 0.35f);
         style.GrabRounding = style.FrameRounding = 2.3f;
     }
-
 }

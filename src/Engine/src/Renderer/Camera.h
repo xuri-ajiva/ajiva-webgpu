@@ -11,49 +11,59 @@
 #include "Core/EventSystem.h"
 #include "Core/Logger.h"
 
-namespace Ajiva::Renderer {
+namespace Ajiva::Renderer
+{
     using glm::vec3;
     using glm::vec2;
 
-    struct Projection {
+    struct Projection
+    {
         float fov = 45.0f;
         float aspect = 1.0f;
         float near = 0.1f;
         float far = 1000.0f;
 
-        [[nodiscard]] glm::mat4 Build() const {
+        [[nodiscard]] glm::mat4 Build() const
+        {
             return glm::perspective(fov, aspect, near, far);
         }
     };
 
-    class AJ_API Camera {
+    class AJ_API Camera
+    {
     public:
         Camera() = default;
 
-        explicit Camera(glm::mat4 viewMatrix) : viewMatrix(viewMatrix) {}
+        explicit Camera(glm::mat4 viewMatrix) : viewMatrix(viewMatrix)
+        {
+        }
 
         virtual void Update() = 0;
 
-        virtual void translate(glm::vec3 v) {
+        virtual void translate(glm::vec3 v)
+        {
             position += v;
             viewMatrix = glm::translate(viewMatrix, v * -1.0f);
         }
 
         glm::vec3 position{0};
         glm::mat4 viewMatrix{0};
-    protected:
 
+    protected:
     };
 
-    class EventCamera : public Camera {
+    class EventCamera : public Camera
+    {
     public:
         virtual void Init();
 
         EventCamera() = default;
 
-        explicit EventCamera(const Ref<Core::EventSystem> &eventSystem)
-                : Camera(glm::lookAt(glm::vec3(0, 0, 1), glm::vec3(0, 0, 0), glm::vec3(0, 0, 1))),
-                  eventSystem(eventSystem) {}
+        explicit EventCamera(const Ref<Core::EventSystem>& eventSystem)
+            : Camera(glm::lookAt(glm::vec3(0, 0, 1), glm::vec3(0, 0, 0), glm::vec3(0, 0, 1))),
+              eventSystem(eventSystem)
+        {
+        }
 
     protected:
         virtual void onMouseMove(AJ_EVENT_PARAMETERS) = 0;
@@ -68,36 +78,45 @@ namespace Ajiva::Renderer {
 
         virtual void onKeyUp(AJ_EVENT_PARAMETERS);
 
-        virtual void onKey(u32 key, bool down) {};
+        virtual void onKey(u32 key, bool down)
+        {
+        };
 
         bool init = false;
         Ref<Ajiva::Core::EventSystem> eventSystem;
         std::vector<Ref<Core::IListener>> events;
     };
 
-    class AJ_API OrbitCamera : public EventCamera {
+    class AJ_API OrbitCamera : public EventCamera
+    {
     public:
-        ~OrbitCamera() {
+        ~OrbitCamera()
+        {
             if (!init) return;
         }
 
         OrbitCamera() = default;
 
-        explicit OrbitCamera(const Ref<Core::EventSystem> &eventSystem)
-                : EventCamera(eventSystem) {}
+        explicit OrbitCamera(const Ref<Core::EventSystem>& eventSystem)
+            : EventCamera(eventSystem)
+        {
+        }
 
         void UpdateViewMatrix();
 
-        void Update() override {
+        void Update() override
+        {
             //   UpdateViewMatrix();
         }
 
-        void Init() override {
+        void Init() override
+        {
             EventCamera::Init();
             UpdateViewMatrix();
         }
 
-        void translate(glm::vec3 v) override {
+        void translate(glm::vec3 v) override
+        {
             orbitCenter += v;
             viewMatrix = glm::translate(viewMatrix, v * -1.0f);
         }
@@ -122,11 +141,15 @@ namespace Ajiva::Renderer {
         float zoom = -1.2f;
     };
 
-    class FreeCamera : public EventCamera {
+    class FreeCamera : public EventCamera
+    {
         friend class ImGuiLayer;
+
     public:
-        explicit FreeCamera(const Ref<Core::EventSystem> &eventSystem)
-                : EventCamera(eventSystem) {}
+        explicit FreeCamera(const Ref<Core::EventSystem>& eventSystem)
+            : EventCamera(eventSystem)
+        {
+        }
 
         void Init() override;
 

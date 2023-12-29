@@ -3,8 +3,10 @@
 #include "defines.h"
 #include <chrono>
 
-namespace Ajiva::Core {
-    struct AJ_API Clock {
+namespace Ajiva::Core
+{
+    struct AJ_API Clock
+    {
         using ClockType = std::chrono::high_resolution_clock;
         using TimePoint = ClockType::time_point;
         using Duration = ClockType::duration;

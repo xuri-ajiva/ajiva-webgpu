@@ -9,13 +9,16 @@
  }
 #define AJ_SHUTDOWN(name) Ajiva::Platform::name::Shutdown();
 
-namespace Ajiva::Platform {
-    bool PlatformSystem::Init() {
+namespace Ajiva::Platform
+{
+    bool PlatformSystem::Init()
+    {
         AJ_INIT_CHECK(Window)
         return true;
     }
 
-    void PlatformSystem::Shutdown() {
+    void PlatformSystem::Shutdown()
+    {
         AJ_SHUTDOWN(Window)
     }
 }

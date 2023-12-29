@@ -7,10 +7,13 @@
 #include "magic_enum.hpp"
 #include "Core/Logger.h"
 
-namespace Ajiva::Renderer {
-    bool GpuContext::Init(const std::function<wgpu::Surface(wgpu::Instance)> &createSurface) {
+namespace Ajiva::Renderer
+{
+    bool GpuContext::Init(const std::function<wgpu::Surface(wgpu::Instance)>& createSurface)
+    {
         instance = CreateScope<wgpu::Instance>(createInstance(wgpu::InstanceDescriptor{}));
-        if (!instance) {
+        if (!instance)
+        {
             AJ_FAIL("Could not initialize WebGPU!");
             return false;
         }
@@ -28,20 +31,20 @@ namespace Ajiva::Renderer {
         PLOG_INFO << "Requesting device...";
         // Don't forget to = Default
         wgpu::RequiredLimits requiredLimits = wgpu::Default;
-/*
-            // We use at most 1 vertex attribute for now
-            requiredLimits.limits.maxVertexAttributes = 10;
-            // We should also tell that we use 1 vertex buffers
-            requiredLimits.limits.maxVertexBuffers = 1;
-            // Maximum size of a buffer is 6 vertices of 2 float each
-            requiredLimits.limits.maxBufferSize = 60 * 5 * sizeof(float);
-            // Maximum stride between 2 consecutive vertices in the vertex buffer
-            requiredLimits.limits.maxVertexBufferArrayStride = sizeof(Vertex);
-            // This must be set even if we do not use storage buffers for now
-            requiredLimits.limits.minStorageBufferOffsetAlignment = supportedLimits.limits.minStorageBufferOffsetAlignment;
-            // This must be set even if we do not use uniform buffers for now
-            requiredLimits.limits.minUniformBufferOffsetAlignment = supportedLimits.limits.minUniformBufferOffsetAlignment;
-            requiredLimits.limits.maxInterStageShaderComponents = 10;*/
+        /*
+                    // We use at most 1 vertex attribute for now
+                    requiredLimits.limits.maxVertexAttributes = 10;
+                    // We should also tell that we use 1 vertex buffers
+                    requiredLimits.limits.maxVertexBuffers = 1;
+                    // Maximum size of a buffer is 6 vertices of 2 float each
+                    requiredLimits.limits.maxBufferSize = 60 * 5 * sizeof(float);
+                    // Maximum stride between 2 consecutive vertices in the vertex buffer
+                    requiredLimits.limits.maxVertexBufferArrayStride = sizeof(Vertex);
+                    // This must be set even if we do not use storage buffers for now
+                    requiredLimits.limits.minStorageBufferOffsetAlignment = supportedLimits.limits.minStorageBufferOffsetAlignment;
+                    // This must be set even if we do not use uniform buffers for now
+                    requiredLimits.limits.minUniformBufferOffsetAlignment = supportedLimits.limits.minUniformBufferOffsetAlignment;
+                    requiredLimits.limits.maxInterStageShaderComponents = 10;*/
         //DON'T CARE JUST GIVE ALL
         requiredLimits.limits = supportedLimits.limits;
 
@@ -53,10 +56,12 @@ namespace Ajiva::Renderer {
         device = CreateScope<wgpu::Device>(adapter->requestDevice(deviceDesc));
         PLOG_INFO << "Got device: " << device.get();
 
-        callback = device->setUncapturedErrorCallback([](wgpu::ErrorType type, char const *message) {
+        callback = device->setUncapturedErrorCallback([](wgpu::ErrorType type, char const* message)
+        {
             if (type == WGPUErrorType_NoError)
                 PLOG_INFO << magic_enum::enum_name<WGPUErrorType>(type) << ": " << message;
-            else {
+            else
+            {
                 PLOG_FATAL << "Uncaptured Error: " << magic_enum::enum_name<WGPUErrorType>(type) << ": ";
                 AJ_FAIL(message);
             }
@@ -68,7 +73,8 @@ namespace Ajiva::Renderer {
         PLOG_INFO << "device.maxVertexAttributes: " << supportedLimits.limits.maxVertexAttributes;
 
         queue = CreateScope<wgpu::Queue>(device->getQueue());
-        queue->onSubmittedWorkDone([](wgpu::QueueWorkDoneStatus status) {
+        queue->onSubmittedWorkDone([](wgpu::QueueWorkDoneStatus status)
+        {
             PLOG_VERBOSE
                         << "QueueWorkDoneStatus: " << magic_enum::enum_name<WGPUQueueWorkDoneStatus>(status).data();
         });
@@ -81,14 +87,16 @@ namespace Ajiva::Renderer {
         return true;
     }
 
-    GpuContext::~GpuContext() {
+    GpuContext::~GpuContext()
+    {
         queue.reset();
         device.reset();
         adapter.reset();
         instance.reset();
     }
 
-    Ref<wgpu::SwapChain> GpuContext::CreateSwapChain(int width, int height) const {
+    Ref<wgpu::SwapChain> GpuContext::CreateSwapChain(int width, int height) const
+    {
         wgpu::SwapChainDescriptor swapChainDesc;
         swapChainDesc.width = width;
         swapChainDesc.height = height;
@@ -101,15 +109,17 @@ namespace Ajiva::Renderer {
         return CreateScope<wgpu::SwapChain>(swapChain);
     }
 
-    wgpu::CommandEncoder GpuContext::CreateCommandEncoder(const char *label) const {
+    wgpu::CommandEncoder GpuContext::CreateCommandEncoder(const char* label) const
+    {
         wgpu::CommandEncoderDescriptor commandEncoderDesc;
         commandEncoderDesc.label = label;
         return device->createCommandEncoder(commandEncoderDesc);
     }
 
     wgpu::RenderPassEncoder
-    GpuContext::CreateRenderPassEncoder(wgpu::CommandEncoder &encoder, wgpu::TextureView &textureView,
-                                        wgpu::TextureView depthTextureView, wgpu::Color clearColor) {
+    GpuContext::CreateRenderPassEncoder(wgpu::CommandEncoder& encoder, wgpu::TextureView& textureView,
+                                        wgpu::TextureView depthTextureView, wgpu::Color clearColor)
+    {
         wgpu::RenderPassDescriptor renderPassDesc{};
         wgpu::RenderPassColorAttachment renderPassColorAttachment;
         renderPassColorAttachment.view = textureView;
@@ -151,22 +161,26 @@ namespace Ajiva::Renderer {
         return encoder.beginRenderPass(renderPassDesc);
     }
 
-    void GpuContext::SubmitCommandBuffer(wgpu::CommandBuffer &commandBuffer) const {
+    void GpuContext::SubmitCommandBuffer(wgpu::CommandBuffer& commandBuffer) const
+    {
         queue->submit(1, &commandBuffer);
     }
 
-    void GpuContext::SubmitCommandBuffers(std::vector<wgpu::CommandBuffer> &commandBuffers) const {
+    void GpuContext::SubmitCommandBuffers(std::vector<wgpu::CommandBuffer>& commandBuffers) const
+    {
         queue->submit(commandBuffers.size(), commandBuffers.data());
     }
 
-    void GpuContext::SubmitEncoder(wgpu::CommandEncoder &encoder, const char *label) const {
+    void GpuContext::SubmitEncoder(wgpu::CommandEncoder& encoder, const char* label) const
+    {
         wgpu::CommandBufferDescriptor cmdBufferDescriptor;
         cmdBufferDescriptor.label = label;
         wgpu::CommandBuffer command = encoder.finish(cmdBufferDescriptor);
         SubmitCommandBuffer(command);
     }
 
-    Ref<wgpu::ShaderModule> GpuContext::CreateShaderModuleFromCode(const std::string &code) const {
+    Ref<wgpu::ShaderModule> GpuContext::CreateShaderModuleFromCode(const std::string& code) const
+    {
         wgpu::ShaderModuleWGSLDescriptor shaderCodeDesc;
         shaderCodeDesc.chain.next = nullptr;
         shaderCodeDesc.chain.sType = wgpu::SType::ShaderModuleWGSLDescriptor;
@@ -182,10 +196,12 @@ namespace Ajiva::Renderer {
         return CreateScope<wgpu::ShaderModule>(shaderModule);
     }
 
-    Ref<wgpu::RenderPipeline> GpuContext::CreateRenderPipeline(const Ref<wgpu::ShaderModule> &shaderModule,
-                                                               const std::vector<wgpu::BindGroupLayout> &bindGroupLayouts,
-                                                               const std::vector<wgpu::VertexAttribute> &vertexAttribs,
-                                                               const wgpu::TextureFormat depthTextureFormat) const {
+    Ref<wgpu::RenderPipeline> GpuContext::CreateRenderPipeline(const Ref<wgpu::ShaderModule>& shaderModule,
+                                                               const std::vector<wgpu::BindGroupLayout>&
+                                                               bindGroupLayouts,
+                                                               const std::vector<wgpu::VertexAttribute>& vertexAttribs,
+                                                               const wgpu::TextureFormat depthTextureFormat) const
+    {
         PLOG_INFO << "Creating render pipeline";
         wgpu::RenderPipelineDescriptor pipelineDesc;
 
@@ -200,48 +216,48 @@ namespace Ajiva::Renderer {
         // Instance buffer layout
 
         WGPUVertexAttribute instanceAttributes[5] = {
-                WGPUVertexAttribute{
-                        .format = wgpu::VertexFormat::Float32x4,
-                        .offset = offsetof(Ajiva::Renderer::InstanceData, modelMatrix),
-                        .shaderLocation = 10,
-                },
-                WGPUVertexAttribute{
-                        .format = wgpu::VertexFormat::Float32x4,
-                        .offset = offsetof(Ajiva::Renderer::InstanceData, modelMatrix) + sizeof(glm::vec4),
-                        .shaderLocation = 11,
-                },
-                WGPUVertexAttribute{
-                        .format = wgpu::VertexFormat::Float32x4,
-                        .offset = offsetof(Ajiva::Renderer::InstanceData, modelMatrix) + sizeof(glm::vec4) * 2,
-                        .shaderLocation = 12,
-                },
-                WGPUVertexAttribute{
-                        .format = wgpu::VertexFormat::Float32x4,
-                        .offset = offsetof(Ajiva::Renderer::InstanceData, modelMatrix) + sizeof(glm::vec4) * 3,
-                        .shaderLocation = 13,
-                },
-                WGPUVertexAttribute{
-                        .format = wgpu::VertexFormat::Float32x4,
-                        .offset = offsetof(Ajiva::Renderer::InstanceData, color),
-                        .shaderLocation = 14,
-                }
+            WGPUVertexAttribute{
+                .format = wgpu::VertexFormat::Float32x4,
+                .offset = offsetof(Ajiva::Renderer::InstanceData, modelMatrix),
+                .shaderLocation = 10,
+            },
+            WGPUVertexAttribute{
+                .format = wgpu::VertexFormat::Float32x4,
+                .offset = offsetof(Ajiva::Renderer::InstanceData, modelMatrix) + sizeof(glm::vec4),
+                .shaderLocation = 11,
+            },
+            WGPUVertexAttribute{
+                .format = wgpu::VertexFormat::Float32x4,
+                .offset = offsetof(Ajiva::Renderer::InstanceData, modelMatrix) + sizeof(glm::vec4) * 2,
+                .shaderLocation = 12,
+            },
+            WGPUVertexAttribute{
+                .format = wgpu::VertexFormat::Float32x4,
+                .offset = offsetof(Ajiva::Renderer::InstanceData, modelMatrix) + sizeof(glm::vec4) * 3,
+                .shaderLocation = 13,
+            },
+            WGPUVertexAttribute{
+                .format = wgpu::VertexFormat::Float32x4,
+                .offset = offsetof(Ajiva::Renderer::InstanceData, color),
+                .shaderLocation = 14,
+            }
         };
 
         vertexBufferLayout[1] = WGPUVertexBufferLayout{
-                .arrayStride = sizeof(InstanceData),
-                .stepMode = wgpu::VertexStepMode::Instance,
-                .attributeCount = 5,
-                .attributes = &instanceAttributes[0],
+            .arrayStride = sizeof(InstanceData),
+            .stepMode = wgpu::VertexStepMode::Instance,
+            .attributeCount = 5,
+            .attributes = &instanceAttributes[0],
         };
 
         // Vertex shader
         pipelineDesc.vertex = WGPUVertexState{
-                .module = *shaderModule,
-                .entryPoint = "vs_main",
-                .constantCount = 0,
-                .constants = nullptr,
-                .bufferCount = 2,
-                .buffers = &vertexBufferLayout[0],
+            .module = *shaderModule,
+            .entryPoint = "vs_main",
+            .constantCount = 0,
+            .constants = nullptr,
+            .bufferCount = 2,
+            .buffers = &vertexBufferLayout[0],
         };
 
         pipelineDesc.primitive.topology = wgpu::PrimitiveTopology::TriangleList;
@@ -299,7 +315,7 @@ namespace Ajiva::Renderer {
         // Create the pipeline layout
         wgpu::PipelineLayoutDescriptor layoutDesc{};
         layoutDesc.bindGroupLayoutCount = bindGroupLayouts.size();
-        layoutDesc.bindGroupLayouts = (WGPUBindGroupLayout *) bindGroupLayouts.data();
+        layoutDesc.bindGroupLayouts = (WGPUBindGroupLayout*)bindGroupLayouts.data();
         wgpu::PipelineLayout layout = device->createPipelineLayout(layoutDesc);
         pipelineDesc.layout = layout;
 
@@ -309,12 +325,14 @@ namespace Ajiva::Renderer {
     }
 
     Ref<Ajiva::Renderer::Texture>
-    GpuContext::CreateTexture(const WGPUTextureFormat &textureFormat, const WGPUExtent3D &textureSize,
+    GpuContext::CreateTexture(const WGPUTextureFormat& textureFormat, const WGPUExtent3D& textureSize,
                               wgpu::TextureUsage usage, wgpu::TextureAspect textureAspect, uint32_t mipLevelCount,
-                              const char *label) const {
+                              const char* label) const
+    {
         wgpu::TextureDescriptor textureDesc;
-        textureDesc.dimension = textureSize.depthOrArrayLayers > 1 ? wgpu::TextureDimension::_3D
-                                                                   : wgpu::TextureDimension::_2D; // todo check for array?
+        textureDesc.dimension = textureSize.depthOrArrayLayers > 1
+                                    ? wgpu::TextureDimension::_3D
+                                    : wgpu::TextureDimension::_2D; // todo check for array?
         textureDesc.format = textureFormat;
         textureDesc.mipLevelCount = mipLevelCount;
         textureDesc.sampleCount = 1;
@@ -330,8 +348,9 @@ namespace Ajiva::Renderer {
         textureViewDesc.arrayLayerCount = 1;
         textureViewDesc.baseMipLevel = 0;
         textureViewDesc.mipLevelCount = mipLevelCount;
-        textureViewDesc.dimension = textureSize.depthOrArrayLayers > 1 ? wgpu::TextureViewDimension::_3D
-                                                                       : wgpu::TextureViewDimension::_2D; // todo check for array?
+        textureViewDesc.dimension = textureSize.depthOrArrayLayers > 1
+                                        ? wgpu::TextureViewDimension::_3D
+                                        : wgpu::TextureViewDimension::_2D; // todo check for array?
         textureViewDesc.format = textureFormat;
         wgpu::TextureView textureView = texture.createView(textureViewDesc);
         PLOG_INFO << "Texture(" << textureFormat << "): " << texture;
@@ -339,12 +358,14 @@ namespace Ajiva::Renderer {
                                                    textureSize);
     }
 
-    Ref<Ajiva::Renderer::Texture> GpuContext::CreateDepthTexture(const WGPUExtent3D &textureSize) {
+    Ref<Ajiva::Renderer::Texture> GpuContext::CreateDepthTexture(const WGPUExtent3D& textureSize)
+    {
         return CreateTexture(depthTextureFormat, textureSize, wgpu::TextureUsage::RenderAttachment,
                              wgpu::TextureAspect::DepthOnly, 1, "DepthTexture");
     }
 
-    Ref<wgpu::BindGroupLayout> GpuContext::CreateBindGroupLayout(std::vector<wgpu::BindGroupLayoutEntry> entries) {
+    Ref<wgpu::BindGroupLayout> GpuContext::CreateBindGroupLayout(std::vector<wgpu::BindGroupLayoutEntry> entries)
+    {
         // Create a bind group layout
         wgpu::BindGroupLayoutDescriptor bindGroupLayoutDesc;
         bindGroupLayoutDesc.entryCount = entries.size();
@@ -355,8 +376,9 @@ namespace Ajiva::Renderer {
     }
 
     Ref<wgpu::BindGroup>
-    GpuContext::CreateBindGroup(const Ref<wgpu::BindGroupLayout> &bindGroupLayout,
-                                std::vector<wgpu::BindGroupEntry> bindings) const {
+    GpuContext::CreateBindGroup(const Ref<wgpu::BindGroupLayout>& bindGroupLayout,
+                                std::vector<wgpu::BindGroupEntry> bindings) const
+    {
         PLOG_INFO << "Creating bind group";
         // A bind group contains one or multiple bindings
         wgpu::BindGroupDescriptor bindGroupDesc;
@@ -370,7 +392,8 @@ namespace Ajiva::Renderer {
     }
 
     Ref<Ajiva::Renderer::Buffer>
-    GpuContext::CreateBuffer(uint64_t size, WGPUBufferUsageFlags usage, const char *label) const {
+    GpuContext::CreateBuffer(uint64_t size, WGPUBufferUsageFlags usage, const char* label) const
+    {
         PLOG_VERBOSE << "Creating buffer: " << label << " size: " << size;
         wgpu::BufferDescriptor bufferDesc;
         bufferDesc.label = label;
@@ -382,8 +405,9 @@ namespace Ajiva::Renderer {
     }
 
     Ref<Ajiva::Renderer::Buffer>
-    GpuContext::CreateFilledBuffer(const void *data, uint64_t size, WGPUBufferUsageFlags usage,
-                                   const char *label) const {
+    GpuContext::CreateFilledBuffer(const void* data, uint64_t size, WGPUBufferUsageFlags usage,
+                                   const char* label) const
+    {
         auto buffer = CreateBuffer(size, usage, label);
         buffer->UpdateBufferData(data, size);
         return buffer;
@@ -391,14 +415,15 @@ namespace Ajiva::Renderer {
 
     Ref<wgpu::Sampler> GpuContext::CreateSampler(wgpu::AddressMode addressMode, wgpu::FilterMode filterMode,
                                                  wgpu::CompareFunction compareFunction, float lodMinClamp,
-                                                 float lodMaxClamp, const char *label) const {
+                                                 float lodMaxClamp, const char* label) const
+    {
         wgpu::SamplerDescriptor samplerDesc;
         samplerDesc.addressModeU = addressMode;
         samplerDesc.addressModeV = addressMode;
         samplerDesc.addressModeW = addressMode;
         samplerDesc.magFilter = filterMode;
         samplerDesc.minFilter = filterMode;
-        samplerDesc.mipmapFilter = static_cast<WGPUMipmapFilterMode>((WGPUFilterMode) filterMode);
+        samplerDesc.mipmapFilter = static_cast<WGPUMipmapFilterMode>((WGPUFilterMode)filterMode);
         samplerDesc.lodMinClamp = lodMinClamp;
         samplerDesc.lodMaxClamp = lodMaxClamp;
         samplerDesc.compare = compareFunction;
@@ -409,9 +434,7 @@ namespace Ajiva::Renderer {
         return CreateRef<wgpu::Sampler>(sampler);
     }
 
-    GpuContext::GpuContext() {
-
+    GpuContext::GpuContext()
+    {
     }
-
-
 }

@@ -11,8 +11,10 @@
 #include "Application.h"
 #include "RenderPipelineLayer.h"
 
-namespace Ajiva::Renderer {
-    class ImGuiLayer : public Ajiva::Core::Layer {
+namespace Ajiva::Renderer
+{
+    class ImGuiLayer : public Ajiva::Core::Layer
+    {
     public:
         ImGuiLayer(Ref<Platform::Window> window, Ref<GpuContext> context, Ref<Core::EventSystem> eventSystem,
                    Ref<Renderer::RenderPipelineLayer> pipeline, Ref<Renderer::FreeCamera> camara);
@@ -48,7 +50,5 @@ namespace Ajiva::Renderer {
         void ShowCameraWindow();
 
         void RenderIntern(Core::RenderTarget target);
-
     };
-
 }

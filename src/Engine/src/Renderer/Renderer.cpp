@@ -12,7 +12,7 @@ namespace Ajiva::Renderer {
         swapChain = context.CreateSwapChain(window.GetWidth(), window.GetHeight());
         Ref<wgpu::ShaderModule> shaderModule = context.CreateShaderModuleFromCode(
         Loader::LoadFile(std::filesystem::path("/shader.wgsl")));
-*//*
+*/ /*
 
 
     }

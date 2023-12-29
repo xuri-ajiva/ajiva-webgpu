@@ -5,7 +5,7 @@
 #include "ThreadPool.h"
 
 
-namespace Ajiva::Core {
-
+namespace Ajiva::Core
+{
 } // Ajiva
 // Core

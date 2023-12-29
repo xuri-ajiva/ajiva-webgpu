@@ -14,24 +14,24 @@
 #include "GpuContext.h"
 #include "Resource/Loader.h"
 
-namespace Ajiva::Renderer {
+namespace Ajiva::Renderer
+{
     using namespace wgpu;
 
-    struct BindGroupBuilder {
-
-
+    struct BindGroupBuilder
+    {
     public:
         BindGroupBuilder() = default;
 
         BindGroupBuilder(Ref<Renderer::GpuContext> context, Ref<Resource::Loader> loader);
 
-        void PushTexture(const Ref<Renderer::Texture> &texture);
+        void PushTexture(const Ref<Renderer::Texture>& texture);
 
-        void PushSampler(const Ref<Renderer::Sampler> &sampler);
+        void PushSampler(const Ref<Renderer::Sampler>& sampler);
 
-        void PushBuffer(const Ref<Renderer::Buffer> &buffer,
+        void PushBuffer(const Ref<Renderer::Buffer>& buffer,
                         ShaderStage visibility = static_cast<WGPUShaderStage>(WGPUShaderStage_Vertex |
-                                                                              WGPUShaderStage_Fragment),
+                            WGPUShaderStage_Fragment),
                         BufferBindingType type = BufferBindingType::Uniform);
 
         void BuildBindGroupLayout();
@@ -40,6 +40,7 @@ namespace Ajiva::Renderer {
 
         Ref<wgpu::BindGroup> bindGroup = nullptr;
         Ref<wgpu::BindGroupLayout> bindGroupLayout = nullptr;
+
     private:
         Ref<Renderer::GpuContext> context;
         Ref<Resource::Loader> loader;
@@ -51,5 +52,4 @@ namespace Ajiva::Renderer {
         std::vector<u64> textureVersions;
         std::vector<Ref<Renderer::Sampler>> samplers;
     };
-
 } // Ajiva Renderer
