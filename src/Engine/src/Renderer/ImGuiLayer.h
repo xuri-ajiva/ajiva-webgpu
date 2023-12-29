@@ -45,10 +45,13 @@ namespace Ajiva::Renderer
         bool show_lightning_window = true;
         bool show_camera_window = true;
         bool app_log_open = true;
+        bool show_overlay = true;
 
         void ShowLightningWindow();
         void ShowCameraWindow();
 
         void RenderIntern(Core::RenderTarget target);
+
+        void ShowOverlay();
     };
 }
