@@ -9,6 +9,7 @@
 #include "Renderer/ImGuiLayer.h"
 #include "Resource/FilesNames.hpp"
 #include "Renderer/RenderPipelineLayer.h"
+#include "GameOfLife.h"
 
 namespace Ajiva
 {
@@ -60,11 +61,13 @@ namespace Ajiva
                                                    return camera->position;
                                                });
         auto pipelineRef = CreateRef<Renderer::RenderPipelineLayer>(pipeline);
+        auto golRef = CreateRef<GameOfLife>(context, eventSystem, window, loader, pipelineRef);
         Renderer::ImGuiLayer imGuiLayer(window, context, eventSystem, pipelineRef, camera);
         camera->Init();
 
         //layers
         layers.push_back(pipelineRef);
+        layers.push_back(golRef);
         layers.push_back(CreateRef<Renderer::ImGuiLayer>(imGuiLayer));
 
         for (const auto& layer : layers)
