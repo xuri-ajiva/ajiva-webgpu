@@ -96,5 +96,9 @@ namespace Ajiva::Renderer
         void CreateInstance(const Ref<Model> &model, const int NumInstances, float i, float j, float k);
 
         void Ui();
+
+    public:
+        Ref<Ajiva::Renderer::Texture> textureDiff;
+        Ref<Ajiva::Renderer::Texture> textureNormal;
     };
 } // PBR

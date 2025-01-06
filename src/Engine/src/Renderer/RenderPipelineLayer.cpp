@@ -84,23 +84,23 @@ namespace Ajiva::Renderer
                                                   "Sampler");
             bindGroupBuilder.PushSampler(sampler);
 
-            auto texture = graphicsResourceManager->GetTexture(
+            textureDiff = graphicsResourceManager->GetTexture(
                 Ajiva::Resource::Files::Textures::cobblestone_floor_08_diff_2k_jpg);
-            if (!texture)
+            if (!textureDiff)
             {
                 AJ_FAIL("Could not load texture!");
                 return false;
             }
-            bindGroupBuilder.PushTexture(texture);
+            bindGroupBuilder.PushTexture(textureDiff);
 
-            texture = loader->LoadTextureAsync(Ajiva::Resource::Files::Textures::cobblestone_floor_08_nor_gl_2k_png,
+            textureNormal = loader->LoadTextureAsync(Ajiva::Resource::Files::Textures::cobblestone_floor_08_nor_gl_2k_png,
                                                *context, mipLevelCount);
-            if (!texture)
+            if (!textureNormal)
             {
                 AJ_FAIL("Could not load texture!");
                 return false;
             }
-            bindGroupBuilder.PushTexture(texture);
+            bindGroupBuilder.PushTexture(textureNormal);
 
             lightningUniformBuffer = context->CreateFilledBuffer(&uniforms,
                                                                  sizeof(Ajiva::Renderer::LightningUniform),
@@ -284,7 +284,7 @@ namespace Ajiva::Renderer
 
         lightningUniformBuffer->UpdateBufferData(&lightningUniform, sizeof(Ajiva::Renderer::LightningUniform));
 
-        constexpr int NumInstances = 400;
+        constexpr int NumInstances = 10;
         auto plane = graphicsResourceManager->GetModel(Ajiva::Resource::Files::Objects::cube_obj);
         int a = 0;
         {

@@ -37,4 +37,18 @@ namespace Ajiva::Renderer
         }
         m_queue->writeBuffer(buffer, offset, data, ALIGN_AT(updateSize, 4));
     }
+
+    Scope<wgpu::BufferMapCallback> Buffer::CopyTo(void *data, uint64_t copySize, uint64_t offset) {
+        if (copySize == INVALID_ID_U64)
+            copySize = this->size;
+        if (offset + copySize > this->size) {
+            PLOG_WARNING << "Buffer::CopyTo: copySize + offset > this->size: " << copySize << " + "
+                         << offset << " > " << this->size;
+            copySize = this->size - offset;
+        }
+        return buffer.mapAsync(wgpu::MapMode::Read, offset, copySize, [&](wgpu::BufferMapAsyncStatus status) {
+            auto from = buffer.getMappedRange(offset, copySize);
+            std::memcpy(data, from, copySize);
+        });
+    }
 } // Ajiva::Renderer

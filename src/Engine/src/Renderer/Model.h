@@ -26,6 +26,7 @@ namespace Ajiva::Renderer
               const std::vector<u16>& indexData, const Ref<Buffer>& vertexBuffer, const Ref<Buffer>& indexBuffer);
 
         Model() = default;
+        ~Model() = default;
 
     public:
         u64 id;
@@ -55,7 +56,7 @@ namespace Ajiva::Renderer
         Ref<InstanceModelData> model = nullptr;
         u64 instanceIndex = 0;
 
-        Ajiva::Renderer::InstanceData& data() const
+        [[nodiscard]] Ajiva::Renderer::InstanceData& data() const
         {
             return model->instanceData[instanceIndex];
         }
@@ -84,7 +85,7 @@ namespace Ajiva::Renderer
             instance->instanceIndex = instanceModelData->instanceData.size();
             //add InstanceData
             auto newData = instanceModelData->instanceData.emplace_back();
-            auto size = sizeof(InstanceData) * instanceModelData->instanceData.capacity();
+            auto size = sizeof(InstanceData) * instanceModelData->instanceData.capacity(); //todo why capacity? not size
             if (!instanceModelData->instanceBuffer || instanceModelData->instanceBuffer->size != size)
             {
                 instanceModelData->instanceBuffer = context->CreateFilledBuffer(instanceModelData->instanceData.data(),

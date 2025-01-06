@@ -8,8 +8,10 @@
 #include "Core/Layer.h"
 
 #include "imgui.h"
-#include "Application.h"
+//#include "Application.h"
 #include "RenderPipelineLayer.h"
+#include "Platform/Window.h"
+#include "Camera.h"
 
 namespace Ajiva::Renderer
 {

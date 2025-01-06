@@ -166,7 +166,9 @@ namespace Ajiva::Renderer
 
         ~Buffer();
 
-        void UpdateBufferData(void const* data, uint64_t updateSize = INVALID_ID_U64, uint64_t offset = 0);
+        void UpdateBufferData(void const *data, uint64_t updateSize = INVALID_ID_U64, uint64_t offset = 0);
+
+        Scope<wgpu::BufferMapCallback> CopyTo(void *data, uint64_t copySize = INVALID_ID_U64, uint64_t offset = 0);
     };
 } // Ajiva
 
