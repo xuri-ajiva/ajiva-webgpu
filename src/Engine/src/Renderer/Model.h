@@ -46,7 +46,8 @@ namespace Ajiva::Renderer
         std::vector<Ajiva::Renderer::InstanceData> instanceData;
         std::vector<bool> modified;
 
-        Ref<Ajiva::Renderer::Buffer> instanceBuffer = nullptr; //todo allow for more than one buffer bc buffer limit is 268435456 (256MiB)
+        Ref<Ajiva::Renderer::Buffer> instanceBuffer = nullptr;
+        //todo allow for more than one buffer bc buffer limit is 268435456 (256MiB)
     };
 
     struct ModelInstance

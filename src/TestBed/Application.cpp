@@ -81,7 +81,7 @@ namespace Ajiva
         BuildSwapChain();
 
         //AJ_INFO("Startup Time: %s", clock.Total());
-        PLOG_DEBUG << std::chrono::duration_cast<std::chrono::milliseconds>(clock.Total());
+        PLOG_DEBUG << clock.Total().count() / 1000.0f << "s";
         clock.Reset();
         return true;
     }

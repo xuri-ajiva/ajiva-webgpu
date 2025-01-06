@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.26)
+cmake_minimum_required(VERSION 3.22.1)
 project(
         Engine
         VERSION 0.1.0
@@ -21,8 +21,8 @@ add_library(Engine STATIC
         src/Resource/Loader.cpp
         src/Resource/Loader.h
         src/Resource/tiny_obj_loader.h
-        src/Application.cpp
-        src/Application.h
+        #       src/Application.cpp
+        #       src/Application.h
         src/Renderer/Renderer.cpp
         src/Renderer/Renderer.h
         src/Resource/ResourceManager.h
